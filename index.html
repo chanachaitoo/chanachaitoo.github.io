@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คลังสินค้า</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS styles for page decoration --- */
+        :root {
+            --primary-color: #4285F4;
+            --background-color: #ffffff;
+            --card-background: #ffffff;
+            --text-color: #202124;
+            --subtle-text-color: #5f6368;
+            --border-radius: 16px;
+        }
+
+        body {
+            font-family: 'Noto Sans Thai', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        #app-container {
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0;
+        }
+        
+        /* Wrapper for Search and Controls */
+        .controls-wrapper {
+            max-width: 800px;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Search Bar Styles */
+        .search-container {
+            margin: 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            border-radius: 50px;
+            border: 2px solid #dfe1e5;
+            transition: box-shadow 0.2s;
+            background-color: #fff;
+            width: 100%;
+            padding: 4px;
+        }
+        
+        #search-input {
+            width: 100%;
+            padding: 8px 10px 8px 48px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 50px;
+            box-sizing: border-box;
+            font-family: 'Noto Sans Thai', sans-serif;
+            background-color: transparent;
+            flex-grow: 1;
+            min-width: 0;
+        }
+        
+        #search-input:focus {
+            outline: none;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: var(--subtle-text-color);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Checkbox inside Search Bar */
+        .search-separator {
+            width: 1px;
+            height: 24px;
+            background-color: #e0e0e0;
+            margin: 0 8px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--subtle-text-color);
+            user-select: none;
+            white-space: nowrap;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .checkbox-label:hover {
+            background-color: #f1f3f4;
+            border-radius: 20px;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            accent-color: var(--primary-color);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* Filter Button inside Search Bar */
+        .filter-button {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background-color: #f1f3f4;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            margin-left: 4px;
+            margin-right: 4px;
+            cursor: pointer;
+            font-family: 'Noto Sans Thai', sans-serif;
+            font-size: 0.85rem;
+            color: var(--subtle-text-color);
+            flex-shrink: 0;
+            transition: background-color 0.2s;
+        }
+
+        .filter-button:hover {
+            background-color: #e8eaed;
+        }
+
+        #current-filter-display {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100px;
+        }
+
+        .filter-arrow {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+
+        .filter-button.open .filter-arrow {
+            transform: rotate(180deg);
+        }
+
+        .filter-dropdown-content {
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background-color: white;
+            min-width: 150px;
+            border-radius: 15px;
+            z-index: 1001;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .filter-dropdown-content a {
+            color: var(--text-color);
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.8rem;
+            border-radius: 15px;
+            font-family: 'Noto Sans Thai', sans-serif;
+        }
+
+        .filter-dropdown-content a:hover {
+            background-color: #3c40430d;
+        }
+
+        .filter-dropdown-content a.active {
+            background-color: #3c404314;
+            color: #202124;
+            font-weight: 500;
+        }
+
+        .filter-dropdown-content.show {
+            display: block;
+        }
+
+        /* Promo Banner (Single Line) */
+        .promo-banner {
+            background-color: #e8f0fe;
+            color: #1967d2;
+            padding: 10px 16px;
+            border-radius: 50px;
+            text-align: center;
+            font-size: 0.9rem;
+            border: 1px solid #d2e3fc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .promo-highlight {
+            font-weight: 700;
+        }
+
+        /* Product Grid */
+        #product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            align-content: flex-start;
+            justify-content: center;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .product-card {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            border: 1px solid #eeeeee;
+            overflow: hidden;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            opacity: 0; 
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        .product-card.out-of-stock .product-image {
+            filter: grayscale(100%);
+            opacity: 0.6;
+        }
+
+        .quantity-k { display: none; }
+        .quantity-full { display: inline; }
+
+        .product-tags-container {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 1px;
+            margin: 0;
+        }
+
+        .product-tag, .more-tags-btn {
+            font-size: 0.8rem;
+            padding: 1px 6px;
+            border-radius: 16px;
+            background-color: #e8eaed;
+            color: #3c4043;
+            font-weight: 500;
+            border: none;
+            cursor: default;
+        }
+
+        .more-tags-btn {
+            cursor: pointer;
+            background-color: #d2e3fc;
+            color: #1967d2;
+            transition: background-color 0.2s;
+        }
+
+        .more-tags-btn:hover { background-color: #aecbfa; }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999; flex-direction: column;
+            color: var(--text-color); font-size: 1.2rem; font-weight: 500;
+        }
+
+        .out-of-stock-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10; pointer-events: none;
+        }
+
+        .out-of-stock-text {
+            background-color: #d93025; color: white;
+            padding: 6px 20px; border-radius: 50px;
+            font-weight: 700; font-size: 1.1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+            text-align: center;
+        }
+
+        /* Tags Popup */
+        .popup-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000; padding: 15px;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .popup-overlay.show { opacity: 1; visibility: visible; }
+
+        .popup-content {
+            background-color: #fff; padding: 25px 30px;
+            border-radius: 12px; max-width: 450px; width: 100%;
+            text-align: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            max-height: 80vh; overflow-y: auto;
+        }
+
+        .popup-content h3 {
+            margin-top: 0; margin-bottom: 20px;
+            font-size: 1.2rem; color: #202124;
+        }
+
+        #popup-product-name { color: var(--primary-color); font-weight: 700; }
+
+        #tags-popup-list {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+        }
+
+        /* Product Image & Skeleton Loading */
+        .product-image-container {
+            margin: 8px;
+            width: calc(100% - 16px);
+            padding-top: calc(100% - 16px);
+            position: relative;
+            background-color: #f1f3f4;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .product-image {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+            z-index: 2;
+        }
+
+        .product-image.loaded {
+            opacity: 1;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -468px 0; }
+            100% { background-position: 468px 0; }
+        }
+
+        .skeleton-loader {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f6f7f8;
+            background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+            background-repeat: no-repeat;
+            background-size: 800px 100%; 
+            animation: shimmer 1.5s linear infinite forwards;
+            z-index: 1;
+        }
+        
+        .product-info {
+            padding: 0px 12px 12px; flex-grow: 1;
+            display: flex; flex-direction: column;
+        }
+        
+        .product-name {
+            font-size: 1.1rem; font-weight: 700;
+            margin: 0; line-height: 1.3;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        
+        .price-and-tags-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 3px; margin-bottom: 5px;
+        }
+
+        .product-price {
+            font-size: 1rem; font-weight: bold; color: var(--primary-color);
+            margin: auto 0;
+        }
+        
+        .product-details {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.9rem; color: var(--subtle-text-color);
+            margin-top: auto; border-top: 1px solid #f1f3f4; padding-top: 2px;
+        }
+
+        #message-container {
+            text-align: center; font-size: 1.2rem; padding: 60px 20px;
+            color: var(--subtle-text-color); font-weight: 500;
+            grid-column: 1 / -1;
+        }
+        
+        .loader {
+            border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color);
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite; margin: 0 auto 20px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        @media (max-width: 600px) {
+            #product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 12px;
+            }
+            .loader { width: 20px; height: 20px; }
+            #message-container { font-size: 0.9rem; }
+            .header h1 { font-size: 1.8rem; }
+            
+            #current-filter-display { display: none; }
+            .filter-button { padding: 8px 10px; }
+
+            .search-icon { left: 15px; }
+            #search-input { font-size: 16px; }
+            .product-image-container {
+                margin: 8px; width: calc(100% - 15px);
+                padding-top: calc(100% - 14px); border-radius: 10px;
+            }
+            .product-info { padding: 0px 12px 8px; }
+            .product-details { font-size: 0.9rem; padding-top: 4px; }
+            .product-name { font-size: 1.1rem; margin-bottom: 1px; }
+            .product-price { font-size: 1rem; margin: 0; }
+            body { padding: 15px; }
+            .quantity-full { display: none; }
+            .quantity-k { display: inline; }
+            
+            .promo-banner { font-size: 0.8rem; border-radius: 20px; }
+        }
+        
+        @media (max-width: 992px) and (min-width: 601px) {
+            #product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 10px;
+            }
+            .loader { width: 30px; height: 30px; }
+            #message-container { font-size: 1rem; }
+            body { padding: 30px; }
+            .header h1 { font-size: 2.2rem; }
+            .product-info { padding: 0 12px 12px; }
+            .product-name { font-size: 1.2rem; }
+            .product-price { font-size: 1rem; }
+            .quantity-full { display: none; }
+            .quantity-k { display: inline; }
+        }
+        
+        #load-more-container {
+            display: flex; justify-content: center; text-align: center;
+            margin: 15px 0 20px;
+        }
+
+        #load-more-btn {
+            background-color: var(--primary-color); color: white;
+            border: none; padding: 10px 30px;
+            font-family: 'Noto Sans Thai', sans-serif;
+            font-size: 0.9rem; font-weight: 500;
+            border-radius: 50px; cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: none;
+        }
+
+        #load-more-btn:hover { background-color: #3367d6; }
+        #load-more-btn:active { transform: scale(0.98); }
+
+        #scroll-to-top-btn {
+            display: none; position: fixed; bottom: 25px; right: 25px;
+            z-index: 1500; border: none; outline: none;
+            background-color: #5f6368; color: white;
+            cursor: pointer; padding: 0; border-radius: 50%;
+            width: 50px; height: 50px; font-size: 24px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s, opacity 0.3s;
+            opacity: 0.8;
+        }
+
+        #scroll-to-top-btn:hover { background-color: var(--primary-color); opacity: 1; }
+
+        @media (max-width: 600px) {
+            #scroll-to-top-btn { width: 40px; height: 40px; font-size: 20px; bottom: 30px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="loader"></div>
+        <div>กำลังโหลดข้อมูล...</div>
+    </div>
+    <div id="app-container">
+        <div class="header">
+            <h1>คลังสินค้า</h1>
+        </div>
+        
+        <div class="controls-wrapper">
+            <div class="search-container">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/><path d="M21,21a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,21Z"/></svg>
+                <input type="text" id="search-input" placeholder="ค้นหาชื่อสินค้า...">
+                
+                <div class="search-separator"></div>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="hide-out-of-stock-checkbox">
+                    <span>ซ่อนสินค้าหมด</span>
+                </label>
+
+                <button id="filter-btn" class="filter-button">
+                    <span id="current-filter-display">แสดงทั้งหมด</span>
+                    <svg class="filter-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                
+                <div id="filter-dropdown" class="filter-dropdown-content"></div>
+            </div>
+
+            <div class="promo-banner">
+                <span>📢 <strong>โปรโมชั่นพิเศษ:</strong> ซื้อครบ <span class="promo-highlight">ทุกๆ 100 บาท</span> ลดทันที <span class="promo-highlight">5 บาท!</span> <small>(เช่น ซื้อ 200 ลด 10, ซื้อ 300 ลด 15)</small></span>
+            </div>
+        </div>
+
+        <div id="product-grid"></div>
+        
+        <div id="load-more-container">
+            <button id="load-more-btn">ดูเพิ่มเติม</button>
+        </div>
+    </div>
+
+    <div id="tags-popup-overlay" class="popup-overlay">
+        <div id="tags-popup-content" class="popup-content">
+            <h3>แท็กทั้งหมดของ : <span id="popup-product-name"></span></h3>
+            <div id="tags-popup-list"></div>
+        </div>
+    </div>
+    
+    <button id="scroll-to-top-btn" title="กลับไปด้านบน">▲</button>
+    
+    <script>
+        // ******************************************************
+        // IMPORTANT: แทนที่ URL นี้ด้วย URL ของ Web App ที่คุณ Deploy
+        // ******************************************************
+        const API_URL = "วาง_URL_ของ_APPS_SCRIPT_ที่นี่"; 
+
+        let allProducts = [];
+        let filteredAndSortedProducts = [];
+        let itemsPerPageDesktop = 14;
+        let itemsPerPageTablet = 8;
+        let itemsPerPageMobile = 4;
+        let currentItemsPerPage = itemsPerPageDesktop;
+        let currentFilter = 'all';
+        let hasLoadedMore = false;
+
+        const grid = document.getElementById('product-grid');
+        const searchInput = document.getElementById('search-input');
+        const hideOutOfStockCheckbox = document.getElementById('hide-out-of-stock-checkbox');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+        const filterBtn = document.getElementById('filter-btn');
+        const currentFilterDisplay = document.getElementById('current-filter-display');
+        const filterDropdown = document.getElementById('filter-dropdown');
+
+        function formatQuantityToK(quantity) {
+            const num = Number(quantity);
+            if (num < 1000) return num.toLocaleString('th-TH');
+            const valueInK = num / 1000;
+            return valueInK.toFixed(1).replace(/\.0$/, '') + 'K';
+        }
+
+        function updateItemsPerPage() {
+            const width = window.innerWidth;
+            if (width <= 600) currentItemsPerPage = itemsPerPageMobile;
+            else if (width <= 992) currentItemsPerPage = itemsPerPageTablet;
+            else currentItemsPerPage = itemsPerPageDesktop;
+        }
+
+        function filterAndSortProducts() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const selectedTag = currentFilter;
+            const hideOutOfStock = hideOutOfStockCheckbox.checked;
+
+            let searchedProducts = allProducts.filter(product => {
+                let matchesSearch = true;
+                if (searchTerm) {
+                    const nameMatch = product.name.toLowerCase().includes(searchTerm);
+                    const tagsAsString = product.tags ? String(product.tags).toLowerCase() : '';
+                    const tagMatch = tagsAsString.includes(searchTerm);
+                    matchesSearch = nameMatch || tagMatch;
+                }
+                if (matchesSearch && hideOutOfStock) {
+                    if (Number(product.quantity) <= 0) return false;
+                }
+                return matchesSearch;
+            });
+
+            let filteredProducts;
+            if (selectedTag === 'all') {
+                filteredProducts = searchedProducts;
+            } else {
+                filteredProducts = searchedProducts.filter(product => {
+                    return product.tags && String(product.tags).split(',').map(t => t.trim()).includes(selectedTag);
+                });
+            }
+
+            filteredAndSortedProducts = filteredProducts.sort((a, b) => Number(a.price) - Number(b.price));
+        }
+        
+        function updateDisplay() {
+            filterAndSortProducts();
+            hasLoadedMore = false;
+            grid.innerHTML = '';
+            renderProductBatch();
+        }
+
+        function renderProductBatch() {
+            updateItemsPerPage();
+            const productsToDisplay = hasLoadedMore
+                ? filteredAndSortedProducts
+                : filteredAndSortedProducts.slice(0, currentItemsPerPage);
+            
+            if (grid.innerHTML === '' && productsToDisplay.length === 0) {
+                grid.innerHTML = '<div id="message-container">ไม่พบสินค้าที่ค้นหา</div>';
+                loadMoreBtn.style.display = 'none';
+                return;
+            }
+            renderProducts(productsToDisplay);
+            updateLoadMoreButton();
+        }
+        
+        function renderProducts(productsToDisplay) {
+            const existingCardCount = grid.querySelectorAll('.product-card').length;
+            productsToDisplay.forEach((product, index) => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                
+                const animationIndex = (existingCardCount > 0) ? (existingCardCount + index) : index;
+                card.style.animationDelay = `${animationIndex * 0.05}s`; 
+
+                const isOutOfStock = Number(product.quantity) <= 0;
+                const displayQuantity = isOutOfStock ? 0 : Number(product.quantity);
+
+                if (isOutOfStock) card.classList.add('out-of-stock');
+                
+                const formattedPrice = Number(product.price).toLocaleString('th-TH');
+                const formattedQuantityFull = displayQuantity.toLocaleString('th-TH');
+                const formattedQuantityK = formatQuantityToK(displayQuantity);
+
+                const tagsArray = product.tags ? String(product.tags).split(',').map(t => t.trim()).filter(Boolean) : [];
+                let tagsHtml = '';
+                if (tagsArray.length > 0) {
+                    tagsHtml = '<div class="product-tags-container">';
+                    const maxVisibleTags = 1;
+                    const visibleTags = tagsArray.slice(0, maxVisibleTags);
+                    visibleTags.forEach(tag => tagsHtml += `<span class="product-tag">${tag}</span>`);
+                    if (tagsArray.length > maxVisibleTags) {
+                        tagsHtml += `<button class="more-tags-btn" data-product-name="${product.name}" data-all-tags='${JSON.stringify(tagsArray)}'>+</button>`;
+                    }
+                    tagsHtml += '</div>';
+                }
+
+                const outOfStockOverlayHtml = isOutOfStock ?
+                    `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
+
+                card.innerHTML = `
+                    <div class="product-image-container">
+                        ${outOfStockOverlayHtml}
+                        <div class="skeleton-loader"></div>
+                        <img src="${product.imageUrl}" class="product-image" alt="${product.name}" loading="lazy" 
+                             onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';"
+                             onerror="this.onerror=null;this.src='https://placehold.co/150x150/F1F3F4/5F6368?text=No+Image'; this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                    </div>
+                    <div class="product-info">
+                        <h2 class="product-name">${product.name}</h2>
+                        <div class="price-and-tags-row">
+                            <div class="product-price">฿${formattedPrice}</div>
+                            ${tagsHtml}
+                        </div>
+                        <div class="product-details">
+                            <span class="product-quantity">คงเหลือ :
+                                <span class="quantity-full">${formattedQuantityFull}</span>
+                                <span class="quantity-k">${formattedQuantityK}</span>
+                            </span>
+                            <span>${product.unit || 'ชิ้น'}</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function updateLoadMoreButton() {
+            const totalProducts = filteredAndSortedProducts.length;
+            if (hasLoadedMore || totalProducts <= currentItemsPerPage) {
+                loadMoreBtn.style.display = 'none';
+            } else {
+                loadMoreBtn.style.display = 'block';
+            }
+        }
+
+        function onDataLoaded(data) {
+            loadingOverlay.style.display = 'none';
+            if (data.error) {
+                grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาด: ${data.error}</div>`;
+                return;
+            }
+            if (!data || data.length === 0) {
+                grid.innerHTML = '<div id="message-container">ไม่สามารถโหลดข้อมูลได้ หรือไม่มีสินค้าในคลัง</div>';
+                return;
+            }
+            allProducts = data;
+            allProducts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+            populateTagFilter();
+            updateDisplay();
+            
+            searchInput.addEventListener('input', updateDisplay);
+            hideOutOfStockCheckbox.addEventListener('change', updateDisplay);
+            setupFilterDropdown();
+            loadMoreBtn.addEventListener('click', () => {
+                hasLoadedMore = true;
+                const productsCurrentlyShown = grid.childElementCount;
+                const remainingProducts = filteredAndSortedProducts.slice(productsCurrentlyShown);
+                if (remainingProducts.length > 0) renderProducts(remainingProducts);
+                loadMoreBtn.style.display = 'none';
+            });
+            window.addEventListener('resize', () => {
+                grid.innerHTML = '';
+                renderProductBatch();
+            });
+            setupTagsPopup();
+            setupScrollToTopButton();
+        }
+
+        function onLoadError(error) {
+            loadingOverlay.style.display = 'none';
+            grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาดในการเชื่อมต่อ: ${error.message || 'ไม่ทราบข้อผิดพลาด'}</div>`;
+        }
+        
+        function populateTagFilter() {
+            filterDropdown.innerHTML = '';
+            const allOption = document.createElement('a');
+            allOption.href = '#';
+            allOption.dataset.value = 'all';
+            allOption.textContent = 'แสดงทั้งหมด';
+            allOption.classList.add('active');
+            filterDropdown.appendChild(allOption);
+            const allTags = new Set();
+            allProducts.forEach(product => {
+                if (product.tags) {
+                    const tagsArray = String(product.tags).split(',').map(tag => tag.trim());
+                    tagsArray.forEach(tag => { if (tag) allTags.add(tag); });
+                }
+            });
+            const sortedTags = [...allTags].sort((a, b) => a.localeCompare(b, 'th'));
+            sortedTags.forEach(tag => {
+                const option = document.createElement('a');
+                option.href = '#';
+                option.dataset.value = tag;
+                option.textContent = tag;
+                filterDropdown.appendChild(option);
+            });
+        }
+        
+        function setupFilterDropdown() {
+            filterBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                filterDropdown.classList.toggle('show');
+                filterBtn.classList.toggle('open');
+            });
+            filterDropdown.addEventListener('click', (e) => {
+                if (e.target.tagName === 'A') {
+                    e.preventDefault();
+                    const selectedValue = e.target.dataset.value;
+                    const selectedText = e.target.textContent;
+                    if (currentFilter !== selectedValue) {
+                        currentFilter = selectedValue;
+                        currentFilterDisplay.textContent = selectedText;
+                        filterDropdown.querySelector('a.active')?.classList.remove('active');
+                        e.target.classList.add('active');
+                        updateDisplay();
+                    }
+                    filterDropdown.classList.remove('show');
+                    filterBtn.classList.remove('open');
+                }
+            });
+            document.addEventListener('click', () => {
+                if (filterDropdown.classList.contains('show')) {
+                    filterDropdown.classList.remove('show');
+                    filterBtn.classList.remove('open');
+                }
+            });
+        }
+
+        function setupTagsPopup() {
+            const tagsPopupOverlay = document.getElementById('tags-popup-overlay');
+            const popupProductName = document.getElementById('popup-product-name');
+            const tagsPopupList = document.getElementById('tags-popup-list');
+            grid.addEventListener('click', function(event) {
+                const moreTagsBtn = event.target.closest('.more-tags-btn');
+                if (moreTagsBtn) {
+                    const productName = moreTagsBtn.dataset.productName;
+                    const allTags = JSON.parse(moreTagsBtn.dataset.allTags);
+                    popupProductName.textContent = productName;
+                    tagsPopupList.innerHTML = '';
+                    allTags.forEach(tag => {
+                        const tagEl = document.createElement('span');
+                        tagEl.className = 'product-tag';
+                        tagEl.textContent = tag;
+                        tagsPopupList.appendChild(tagEl);
+                    });
+                    tagsPopupOverlay.classList.add('show');
+                }
+            });
+            tagsPopupOverlay.addEventListener('click', function(event) {
+                if (event.target === tagsPopupOverlay) tagsPopupOverlay.classList.remove('show');
+            });
+        }
+        
+        function setupScrollToTopButton() {
+            window.onscroll = function() {
+                if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+                    scrollToTopBtn.style.display = "block";
+                } else {
+                    scrollToTopBtn.style.display = "none";
+                }
+            };
+            scrollToTopBtn.addEventListener('click', function() {
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+            });
+        }
+
+        // --- FETCH DATA FROM APPS SCRIPT API ---
+        function fetchData() {
+            if (API_URL === "https://script.google.com/macros/s/AKfycbyIjTARlQ9KSfZggToXmdL_qFAgaHOtRSNb2Fy3C4ioNkIf4g_BikuhQitXT9ez6YC1dw/exec") {
+                 grid.innerHTML = '<div id="message-container">กรุณาใส่ URL ของ Apps Script ในตัวแปร API_URL</div>';
+                 loadingOverlay.style.display = 'none';
+                 return;
+            }
+
+            fetch(API_URL)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => onDataLoaded(data))
+                .catch(error => onLoadError(error));
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
