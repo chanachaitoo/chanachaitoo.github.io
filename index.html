@@ -349,7 +349,7 @@
             display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
         }
 
-        /* Product Image - REMOVED SKELETON CSS */
+        /* Product Image Container */
         .product-image-container {
             margin: 8px;
             width: calc(100% - 16px);
@@ -363,11 +363,35 @@
         .product-image {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
-            opacity: 1; /* Changed to 1 to show immediately */
+            opacity: 1;
             z-index: 2;
         }
 
-        /* Removed shimmer animation and skeleton-loader class */
+        /* --- UPDATED: Revert to Simple Spinner but keep Flexbox centering --- */
+        .image-spinner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f9fa; 
+            z-index: 1;
+        }
+        
+        /* The simple spinner circle */
+        .image-spinner::after {
+            content: "";
+            width: 30px;
+            height: 30px;
+            border: 3px solid #ddd; /* Light grey track */
+            border-top: 3px solid var(--primary-color); /* Blue top */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        /* ------------------------------------------- */
         
         .product-info {
             padding: 0px 12px 12px; flex-grow: 1;
@@ -514,7 +538,7 @@
                 <div class="search-separator"></div>
                 <label class="checkbox-label">
                     <input type="checkbox" id="hide-out-of-stock-checkbox">
-                    <span>ซ่อนสินค้าหมด</span>
+                    <span>ซ่อนสินค้าที่หมด</span>
                 </label>
 
                 <button id="filter-btn" class="filter-button">
@@ -528,7 +552,7 @@
             </div>
 
             <div class="promo-banner">
-                <span>📢 <strong>โปรโมชั่นพิเศษ:</strong> ซื้อครบ <span class="promo-highlight"> 100 บาท</span> ลดทันที <span class="promo-highlight">5 บาท</span></span>
+                <span>📢 <strong>โปรโมชั่นพิเศษ :</strong> ซื้อครบ <span class="promo-highlight"> 100 บาท</span> ลดทันที <span class="promo-highlight">5 บาท</span></span>
             </div>
         </div>
 
@@ -674,12 +698,14 @@
                 const outOfStockOverlayHtml = isOutOfStock ?
                     `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
 
-                // เอา Skeleton loader ออก และปรับ img ให้แสดงผลทันที
+                // เพิ่ม Spinner div และซ่อนเมื่อโหลดเสร็จ
                 card.innerHTML = `
                     <div class="product-image-container">
+                        <div class="image-spinner"></div>
                         ${outOfStockOverlayHtml}
                         <img src="${product.imageUrl}" class="product-image" alt="${product.name}" loading="lazy" 
-                             onerror="this.onerror=null;this.src='https://placehold.co/150x150/F1F3F4/5F6368?text=No+Image';">
+                             onload="this.parentElement.querySelector('.image-spinner').style.display='none';"
+                             onerror="this.parentElement.querySelector('.image-spinner').style.display='none'; this.onerror=null;this.src='https://placehold.co/150x150/F1F3F4/5F6368?text=No+Image';">
                     </div>
                     <div class="product-info">
                         <h2 class="product-name">${product.name}</h2>
