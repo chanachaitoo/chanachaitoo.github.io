@@ -333,7 +333,7 @@
 
         .popup-content {
             background-color: #fff; padding: 25px 30px;
-            border-radius: 12px; max-width: 450px; width: 100%;
+            border-radius: 20px; max-width: 450px; width: 100%;
             text-align: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             max-height: 80vh; overflow-y: auto;
         }
@@ -349,7 +349,7 @@
             display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
         }
 
-        /* Product Image & Skeleton Loading */
+        /* Product Image - REMOVED SKELETON CSS */
         .product-image-container {
             margin: 8px;
             width: calc(100% - 16px);
@@ -363,29 +363,11 @@
         .product-image {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
-            opacity: 0;
-            transition: opacity 0.3s ease-in;
+            opacity: 1; /* Changed to 1 to show immediately */
             z-index: 2;
         }
 
-        .product-image.loaded {
-            opacity: 1;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: -468px 0; }
-            100% { background-position: 468px 0; }
-        }
-
-        .skeleton-loader {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #f6f7f8;
-            background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
-            background-repeat: no-repeat;
-            background-size: 800px 100%; 
-            animation: shimmer 1.5s linear infinite forwards;
-            z-index: 1;
-        }
+        /* Removed shimmer animation and skeleton-loader class */
         
         .product-info {
             padding: 0px 12px 12px; flex-grow: 1;
@@ -432,6 +414,11 @@
             #product-grid {
                 grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
                 gap: 12px;
+            }
+            .popup-content {
+                max-width: 100%;
+                margin-right: 30px;
+                padding: 20px 20px;
             }
             .loader { width: 20px; height: 20px; }
             #message-container { font-size: 0.9rem; }
@@ -541,7 +528,7 @@
             </div>
 
             <div class="promo-banner">
-                <span>📢 <strong>โปรโมชั่นพิเศษ:</strong> ซื้อครบ <span class="promo-highlight">ทุกๆ 100 บาท</span> ลดทันที <span class="promo-highlight">5 บาท!</span> <small>(เช่น ซื้อ 200 ลด 10, ซื้อ 300 ลด 15)</small></span>
+                <span>📢 <strong>โปรโมชั่นพิเศษ:</strong> ซื้อครบ <span class="promo-highlight"> 100 บาท</span> ลดทันที <span class="promo-highlight">5 บาท</span></span>
             </div>
         </div>
 
@@ -687,13 +674,12 @@
                 const outOfStockOverlayHtml = isOutOfStock ?
                     `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
 
+                // เอา Skeleton loader ออก และปรับ img ให้แสดงผลทันที
                 card.innerHTML = `
                     <div class="product-image-container">
                         ${outOfStockOverlayHtml}
-                        <div class="skeleton-loader"></div>
                         <img src="${product.imageUrl}" class="product-image" alt="${product.name}" loading="lazy" 
-                             onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';"
-                             onerror="this.onerror=null;this.src='https://placehold.co/150x150/F1F3F4/5F6368?text=No+Image'; this.classList.add('loaded'); this.previousElementSibling.style.display='none';">
+                             onerror="this.onerror=null;this.src='https://placehold.co/150x150/F1F3F4/5F6368?text=No+Image';">
                     </div>
                     <div class="product-info">
                         <h2 class="product-name">${product.name}</h2>
