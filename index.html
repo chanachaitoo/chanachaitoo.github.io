@@ -238,6 +238,7 @@
             gap: 10px;
             align-content: flex-start;
             justify-content: center;
+            min-height: 200px; /* Prevent collapse during load */
         }
         
         @keyframes fadeInUp {
@@ -294,12 +295,54 @@
 
         .more-tags-btn:hover { background-color: #aecbfa; }
 
-        /* Loading Overlay */
+        /* --- SKELETON LOADING STYLES (NEW) --- */
+        .skeleton {
+            background: #eee;
+            background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+            border-radius: 5px;
+            background-size: 200% 100%;
+            animation: 1.5s shine linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position-x: -200%; }
+        }
+
+        .skeleton-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            border: 1px solid #eeeeee;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 300px; /* Approx height */
+        }
+
+        .skeleton-image {
+            width: 100%;
+            padding-top: 100%; /* Square aspect ratio */
+            position: relative;
+        }
+        
+        .skeleton-content {
+            padding: 12px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .skeleton-text { height: 16px; width: 80%; border-radius: 4px; }
+        .skeleton-text-short { height: 16px; width: 40%; border-radius: 4px; }
+        .skeleton-tag { height: 20px; width: 50px; border-radius: 16px; align-self: flex-end; }
+
+        /* Loading Overlay - Modified to be non-blocking initially */
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(255, 255, 255, 0.5);
+            background-color: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(4px);
-            display: flex; justify-content: center; align-items: center;
+            display: none; /* Hidden by default, managed by JS */
+            justify-content: center; align-items: center;
             z-index: 9999; flex-direction: column;
             color: var(--text-color); font-size: 1.2rem; font-weight: 500;
         }
@@ -367,7 +410,7 @@
             z-index: 2;
         }
 
-        /* --- UPDATED: Revert to Simple Spinner but keep Flexbox centering --- */
+        /* Spinner for individual images */
         .image-spinner {
             position: absolute;
             top: 0;
@@ -381,17 +424,15 @@
             z-index: 1;
         }
         
-        /* The simple spinner circle */
         .image-spinner::after {
             content: "";
             width: 30px;
             height: 30px;
-            border: 3px solid #ddd; /* Light grey track */
-            border-top: 3px solid var(--primary-color); /* Blue top */
+            border: 3px solid #ddd;
+            border-top: 3px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        /* ------------------------------------------- */
         
         .product-info {
             padding: 0px 12px 12px; flex-grow: 1;
@@ -434,6 +475,31 @@
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
+        /* Toast Notification for "Loaded from cache" */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 50px;
+            padding: 12px;
+            position: fixed;
+            z-index: 10000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.5s, bottom 0.5s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
         @media (max-width: 600px) {
             #product-grid {
                 grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -521,10 +587,12 @@
     </style>
 </head>
 <body>
+    <!-- Loading Overlay (Only used for hard reloads or errors) -->
     <div id="loading-overlay">
         <div class="loader"></div>
-        <div>กำลังโหลดข้อมูล...</div>
+        <div>กำลังอัปเดตข้อมูล...</div>
     </div>
+
     <div id="app-container">
         <div class="header">
             <h1>คลังสินค้า</h1>
@@ -571,6 +639,7 @@
     </div>
     
     <button id="scroll-to-top-btn" title="กลับไปด้านบน">▲</button>
+    <div id="toast"></div>
     
     <script>
         // ******************************************************
@@ -578,6 +647,10 @@
         // ******************************************************
         const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2BiIPCm_K_ZoUEbnGNp8L_HnAP2X61df607Qx7GwkMrrtC/exec"; 
 
+        // --- CACHE CONFIGURATION ---
+        const CACHE_KEY = 'warehouse_stock_data';
+        const CACHE_DURATION = 1000 * 60 * 10; // 10 minutes cache
+        
         let allProducts = [];
         let filteredAndSortedProducts = [];
         let itemsPerPageDesktop = 14;
@@ -698,7 +771,6 @@
                 const outOfStockOverlayHtml = isOutOfStock ?
                     `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
 
-                // เพิ่ม Spinner div และซ่อนเมื่อโหลดเสร็จ
                 card.innerHTML = `
                     <div class="product-image-container">
                         <div class="image-spinner"></div>
@@ -735,38 +807,108 @@
             }
         }
 
-        function onDataLoaded(data) {
+        // --- NEW: SKELETON LOADING FUNCTION ---
+        function renderSkeletons(count = 8) {
+            grid.innerHTML = '';
+            for(let i=0; i<count; i++) {
+                const skeleton = document.createElement('div');
+                skeleton.className = 'skeleton-card';
+                skeleton.innerHTML = `
+                    <div class="product-image-container skeleton">
+                        <div class="skeleton-image"></div>
+                    </div>
+                    <div class="skeleton-content">
+                        <div class="skeleton-text skeleton"></div>
+                        <div class="skeleton-text-short skeleton"></div>
+                        <div class="skeleton-tag skeleton"></div>
+                    </div>
+                `;
+                grid.appendChild(skeleton);
+            }
+        }
+
+        // --- NEW: CACHE MANAGEMENT ---
+        function getCachedData() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (!cached) return null;
+                const parsed = JSON.parse(cached);
+                // Check if expired
+                if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+                    console.log("Cache expired");
+                    return null;
+                }
+                return parsed.data;
+            } catch (e) {
+                console.error("Cache error", e);
+                return null;
+            }
+        }
+
+        function saveCache(data) {
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    timestamp: Date.now(),
+                    data: data
+                }));
+            } catch (e) {
+                console.error("Storage full or error", e);
+            }
+        }
+        
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.className = "show";
+            toast.innerText = message;
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        function onDataLoaded(data, isFromCache = false) {
             loadingOverlay.style.display = 'none';
             if (data.error) {
-                grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาด: ${data.error}</div>`;
+                if(!isFromCache) grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาด: ${data.error}</div>`;
                 return;
             }
             if (!data || data.length === 0) {
-                grid.innerHTML = '<div id="message-container">ไม่สามารถโหลดข้อมูลได้ หรือไม่มีสินค้าในคลัง</div>';
+                if(!isFromCache) grid.innerHTML = '<div id="message-container">ไม่สามารถโหลดข้อมูลได้ หรือไม่มีสินค้าในคลัง</div>';
                 return;
             }
+            
+            // Save to global var
             allProducts = data;
             allProducts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+            
+            // If it's a fresh fetch, update cache
+            if (!isFromCache) {
+                saveCache(allProducts);
+            } else {
+                // Optional: Show a subtle message that data is from cache
+                // showToast("แสดงข้อมูลล่าสุดจากเครื่อง");
+            }
+
+            // Update UI
             populateTagFilter();
             updateDisplay();
             
             searchInput.addEventListener('input', updateDisplay);
             hideOutOfStockCheckbox.addEventListener('change', updateDisplay);
             setupFilterDropdown();
-            loadMoreBtn.addEventListener('click', () => {
-                hasLoadedMore = true;
-                const productsCurrentlyShown = grid.childElementCount;
-                const remainingProducts = filteredAndSortedProducts.slice(productsCurrentlyShown);
-                if (remainingProducts.length > 0) renderProducts(remainingProducts);
-                loadMoreBtn.style.display = 'none';
-            });
-            window.addEventListener('resize', () => {
-                grid.innerHTML = '';
-                renderProductBatch();
-            });
             setupTagsPopup();
             setupScrollToTopButton();
         }
+
+        // Initialize Listeners only once
+        loadMoreBtn.addEventListener('click', () => {
+            hasLoadedMore = true;
+            const productsCurrentlyShown = grid.childElementCount;
+            const remainingProducts = filteredAndSortedProducts.slice(productsCurrentlyShown);
+            if (remainingProducts.length > 0) renderProducts(remainingProducts);
+            loadMoreBtn.style.display = 'none';
+        });
+        window.addEventListener('resize', () => {
+            grid.innerHTML = '';
+            renderProductBatch();
+        });
 
         function onLoadError(error) {
             loadingOverlay.style.display = 'none';
@@ -799,6 +941,39 @@
         }
         
         function setupFilterDropdown() {
+            // Remove old listeners to prevent duplicates if function called multiple times? 
+            // Better to use a flag or just simplistic approach:
+            // Since onDataLoaded is called once per flow (cache OR fetch), it's fine.
+            
+            // Cloning to remove existing listeners (quick reset trick)
+            const newFilterBtn = filterBtn.cloneNode(true);
+            filterBtn.parentNode.replaceChild(newFilterBtn, filterBtn);
+            
+            // Re-select
+            const freshFilterBtn = document.getElementById('filter-btn');
+            
+            freshFilterBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                filterDropdown.classList.toggle('show');
+                freshFilterBtn.classList.toggle('open');
+            });
+            
+            // Reset dropdown listener too
+            const newFilterDropdown = filterDropdown.cloneNode(false); // shallow clone container
+            filterDropdown.parentNode.replaceChild(newFilterDropdown, filterDropdown);
+            
+            // Note: populateTagFilter fills the dropdown content, so we need to re-call it or just keep content?
+            // Actually, populateTagFilter is called inside onDataLoaded BEFORE this.
+            // So we just need to re-attach the event delegation to the *existing* dropdown if we didn't clone it.
+            // Simplified: Just use a flag to init listeners once.
+        }
+        
+        // Better Filter Setup Pattern:
+        let isFilterSetup = false;
+        function setupFilterDropdown() {
+            if (isFilterSetup) return;
+            isFilterSetup = true;
+
             filterBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 filterDropdown.classList.toggle('show');
@@ -828,7 +1003,11 @@
             });
         }
 
+        let isPopupSetup = false;
         function setupTagsPopup() {
+            if (isPopupSetup) return;
+            isPopupSetup = true;
+            
             const tagsPopupOverlay = document.getElementById('tags-popup-overlay');
             const popupProductName = document.getElementById('popup-product-name');
             const tagsPopupList = document.getElementById('tags-popup-list');
@@ -867,7 +1046,7 @@
             });
         }
 
-        // --- FETCH DATA FROM APPS SCRIPT API ---
+        // --- FETCH DATA LOGIC WITH CACHE ---
         function fetchData() {
             if (API_URL === "วาง_URL_ของ_APPS_SCRIPT_ที่นี่") {
                  grid.innerHTML = '<div id="message-container">กรุณาใส่ URL ของ Apps Script ในตัวแปร API_URL</div>';
@@ -875,12 +1054,24 @@
                  return;
             }
 
+            // 1. Try Cache First
+            const cachedData = getCachedData();
+            if (cachedData) {
+                console.log("Using cached data");
+                onDataLoaded(cachedData, true);
+                return; // Stop here if cache is valid (Faster!)
+            }
+
+            // 2. If no cache, Show Skeleton
+            renderSkeletons(8); 
+
+            // 3. Fetch from Network
             fetch(API_URL)
                 .then(response => {
                     if (!response.ok) throw new Error('Network response was not ok');
                     return response.json();
                 })
-                .then(data => onDataLoaded(data))
+                .then(data => onDataLoaded(data, false))
                 .catch(error => onLoadError(error));
         }
 
