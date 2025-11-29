@@ -119,13 +119,13 @@
             color: var(--subtle-text-color);
             user-select: none;
             white-space: nowrap;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 4px 12px 4px 8px; /* Adjusted padding since it's now at the end */
+            border-radius: 20px;
+            margin-right: 4px;
         }
 
         .checkbox-label:hover {
             background-color: #f1f3f4;
-            border-radius: 20px;
         }
 
         .checkbox-label input[type="checkbox"] {
@@ -136,86 +136,55 @@
             margin: 0;
         }
 
-        /* Filter Button inside Search Bar */
-        .filter-button {
+        /* --- New Horizontal Category Scroll Styles --- */
+        .category-scroll-container {
             display: flex;
-            align-items: center;
-            gap: 4px;
-            background-color: #f1f3f4;
-            border: none;
-            border-radius: 20px;
-            padding: 8px 16px;
-            margin-left: 4px;
-            margin-right: 4px;
-            cursor: pointer;
-            font-family: 'Noto Sans Thai', sans-serif;
-            font-size: 0.85rem;
-            color: var(--subtle-text-color);
-            flex-shrink: 0;
-            transition: background-color 0.2s;
+            overflow-x: auto;
+            gap: 8px;
+            padding: 4px 2px 12px 2px; /* Bottom padding for scrollbar/shadow space */
+            margin-bottom: 0px;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            scrollbar-width: none; /* Hide scrollbar Firefox */
+            /* Add dragging cursor */
+            cursor: grab;
         }
 
-        .filter-button:hover {
+        /* Add class for active dragging */
+        .category-scroll-container.active {
+            cursor: grabbing;
+            cursor: -webkit-grabbing;
+        }
+
+        .category-scroll-container::-webkit-scrollbar {
+            display: none; /* Hide scrollbar Chrome/Safari */
+        }
+
+        .category-chip {
+            background-color: #f1f3f4;
+            color: #3c4043;
+            border: 1px solid transparent;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: 'Noto Sans Thai', sans-serif;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .category-chip:hover {
             background-color: #e8eaed;
         }
 
-        #current-filter-display {
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100px;
+        .category-chip.active {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            box-shadow: 0 2px 5px rgba(66, 133, 244, 0.3);
         }
 
-        .filter-arrow {
-            width: 16px;
-            height: 16px;
-            transition: transform 0.2s;
-        }
-
-        .filter-button.open .filter-arrow {
-            transform: rotate(180deg);
-        }
-
-        .filter-dropdown-content {
-            display: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
-            background-color: white;
-            min-width: 150px;
-            border-radius: 15px;
-            z-index: 1001;
-            max-height: 280px;
-            overflow-y: auto;
-        }
-
-        .filter-dropdown-content a {
-            color: var(--text-color);
-            padding: 10px 15px;
-            text-decoration: none;
-            display: block;
-            font-size: 0.8rem;
-            border-radius: 15px;
-            font-family: 'Noto Sans Thai', sans-serif;
-        }
-
-        .filter-dropdown-content a:hover {
-            background-color: #3c40430d;
-        }
-
-        .filter-dropdown-content a.active {
-            background-color: #3c404314;
-            color: #202124;
-            font-weight: 500;
-        }
-
-        .filter-dropdown-content.show {
-            display: block;
-        }
-
-        /* Promo Banner (Single Line) */
+        /* Promo Banner */
         .promo-banner {
             background-color: #e8f0fe;
             color: #1967d2;
@@ -258,10 +227,8 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            /* Animation applied in JS/CSS dynamically for real cards */
         }
         
-        /* Apply fade-in only to real cards, not skeletons */
         .product-card:not(.skeleton-card) {
             opacity: 0; 
             animation: fadeInUp 0.5s ease-out forwards;
@@ -304,7 +271,6 @@
         .more-tags-btn:hover { background-color: #aecbfa; }
 
         /* --- SKELETON LOADING STYLES --- */
-        
         @keyframes shimmer {
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
@@ -320,9 +286,8 @@
             animation: shimmer 1.5s infinite linear;
         }
 
-        /* Skeleton Card Structure */
         .skeleton-card .product-image-container {
-            background-color: #eee; /* Fallback */
+            background-color: #eee;
         }
         
         .skeleton-text {
@@ -336,11 +301,7 @@
         .skeleton-tag { width: 30%; height: 0.8rem; margin-left: auto; }
         .skeleton-footer { width: 100%; height: 0.8rem; margin-top: auto; }
 
-        /* Loading Overlay (Only for initial blocking if needed, but we use skeletons now) */
-        #loading-overlay {
-            /* Disable full screen overlay to show skeletons */
-            display: none !important; 
-        }
+        #loading-overlay { display: none !important; }
 
         .out-of-stock-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -401,14 +362,12 @@
         .product-image {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
-            opacity: 0; /* Hidden initially, fade in on load */
+            opacity: 0;
             transition: opacity 0.3s ease-in;
             z-index: 2;
         }
         
-        .product-image.loaded {
-            opacity: 1;
-        }
+        .product-image.loaded { opacity: 1; }
 
         .product-info {
             padding: 0px 12px 12px; flex-grow: 1;
@@ -456,11 +415,10 @@
             #message-container { font-size: 0.9rem; }
             .header h1 { font-size: 1.8rem; }
             
-            #current-filter-display { display: none; }
-            .filter-button { padding: 8px 10px; }
-
+            /* Removed dropdown styles, kept compact search */
             .search-icon { left: 15px; }
             #search-input { font-size: 16px; }
+            
             .product-image-container {
                 margin: 8px; width: calc(100% - 15px);
                 padding-top: calc(100% - 14px); border-radius: 10px;
@@ -534,6 +492,7 @@
         </div>
         
         <div class="controls-wrapper">
+            <!-- Search Bar -->
             <div class="search-container">
                 <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/><path d="M21,21a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,21Z"/></svg>
                 <input type="text" id="search-input" placeholder="ค้นหาชื่อสินค้า...">
@@ -543,15 +502,15 @@
                     <input type="checkbox" id="hide-out-of-stock-checkbox">
                     <span>ซ่อนสินค้าที่หมด</span>
                 </label>
+            </div>
 
-                <button id="filter-btn" class="filter-button">
-                    <span id="current-filter-display">แสดงทั้งหมด</span>
-                    <svg class="filter-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-                
-                <div id="filter-dropdown" class="filter-dropdown-content"></div>
+            <!-- NEW: Horizontal Category Scroll -->
+            <div id="category-filter-container" class="category-scroll-container">
+                <!-- Chips will be injected here -->
+                <button class="category-chip active" data-value="all">ทั้งหมด</button>
+                <button class="category-chip skeleton-shimmer" style="width: 80px; color: transparent; border: none;"></button>
+                <button class="category-chip skeleton-shimmer" style="width: 100px; color: transparent; border: none;"></button>
+                <button class="category-chip skeleton-shimmer" style="width: 60px; color: transparent; border: none;"></button>
             </div>
 
             <div class="promo-banner">
@@ -591,15 +550,16 @@
         let currentItemsPerPage = itemsPerPageDesktop;
         let currentFilter = 'all';
         let hasLoadedMore = false;
+        
+        // Flag to detect dragging vs clicking
+        let isDraggingCategory = false;
 
         const grid = document.getElementById('product-grid');
         const searchInput = document.getElementById('search-input');
         const hideOutOfStockCheckbox = document.getElementById('hide-out-of-stock-checkbox');
         const loadMoreBtn = document.getElementById('load-more-btn');
         const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
-        const filterBtn = document.getElementById('filter-btn');
-        const currentFilterDisplay = document.getElementById('current-filter-display');
-        const filterDropdown = document.getElementById('filter-dropdown');
+        const categoryFilterContainer = document.getElementById('category-filter-container');
 
         function formatQuantityToK(quantity) {
             const num = Number(quantity);
@@ -609,20 +569,15 @@
         }
 
         // --- IMAGE OPTIMIZATION ---
-        // ใช้ wsrv.nl เพื่อ resize ภาพและแปลงเป็น webp ทำให้โหลดไวขึ้นมาก
         function getOptimizedImageUrl(url) {
             if (!url) return 'https://placehold.co/400x400/F1F3F4/5F6368?text=No+Image';
-            // ถ้า URL ไม่ใช่ http (เช่น base64) ให้คืนค่าเดิม
             if (!url.startsWith('http')) return url;
-            
-            // ใช้ wsrv.nl proxy: w=400 (กว้าง 400px), q=80 (คุณภาพ 80%), output=webp
             return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=400&q=80&output=webp`;
         }
 
         // --- SKELETON LOADING ---
         function renderSkeletonLoading() {
             updateItemsPerPage();
-            // สร้าง Skeleton cards ตามจำนวนที่จะแสดงผล
             let skeletonHTML = '';
             for (let i = 0; i < currentItemsPerPage; i++) {
                 skeletonHTML += `
@@ -682,7 +637,7 @@
         
         function updateDisplay() {
             filterAndSortProducts();
-            hasLoadedMore = false;
+            // REMOVE: hasLoadedMore = false; // ปิดการใช้งานบรรทัดนี้ เพื่อให้สถานะการโหลดคงอยู่เมื่อเปลี่ยน filter/search
             grid.innerHTML = '';
             renderProductBatch();
         }
@@ -721,7 +676,6 @@
                 const formattedQuantityFull = displayQuantity.toLocaleString('th-TH');
                 const formattedQuantityK = formatQuantityToK(displayQuantity);
                 
-                // Optimized Image URL
                 const optimizedImgUrl = getOptimizedImageUrl(product.imageUrl);
 
                 const tagsArray = product.tags ? String(product.tags).split(',').map(t => t.trim()).filter(Boolean) : [];
@@ -740,8 +694,6 @@
                 const outOfStockOverlayHtml = isOutOfStock ?
                     `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
 
-                // Logic: ใส่ class skeleton-shimmer ไว้ที่ container
-                // เมื่อรูปโหลดเสร็จ (onload) ให้ลบ class ออก
                 card.innerHTML = `
                     <div class="product-image-container skeleton-shimmer">
                         ${outOfStockOverlayHtml}
@@ -782,9 +734,6 @@
         }
 
         function onDataLoaded(data) {
-            // ไม่ต้องซ่อน loadingOverlay แล้วเพราะเราใช้ Skeleton แทน
-            // แต่เคลียร์ Skeleton ชุดแรกออกก่อน render ของจริง
-            
             if (data.error) {
                 grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาด: ${data.error}</div>`;
                 return;
@@ -794,14 +743,13 @@
                 return;
             }
             allProducts = data;
-            // เรียงลำดับตามชื่อ
             allProducts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
-            populateTagFilter();
+            populateCategoryChips();
             updateDisplay();
             
             searchInput.addEventListener('input', updateDisplay);
             hideOutOfStockCheckbox.addEventListener('change', updateDisplay);
-            setupFilterDropdown();
+            
             loadMoreBtn.addEventListener('click', () => {
                 hasLoadedMore = true;
                 const productsCurrentlyShown = grid.querySelectorAll('.product-card:not(.skeleton-card)').length;
@@ -810,8 +758,6 @@
                 loadMoreBtn.style.display = 'none';
             });
             window.addEventListener('resize', () => {
-                // ระวัง: การ resize จะเคลียร์และวาดใหม่
-                // ถ้าข้อมูลโหลดแล้วก็วาดใหม่ได้เลย
                 if(allProducts.length > 0) {
                     grid.innerHTML = '';
                     renderProductBatch();
@@ -825,14 +771,17 @@
             grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาดในการเชื่อมต่อ: ${error.message || 'ไม่ทราบข้อผิดพลาด'}</div>`;
         }
         
-        function populateTagFilter() {
-            filterDropdown.innerHTML = '';
-            const allOption = document.createElement('a');
-            allOption.href = '#';
-            allOption.dataset.value = 'all';
-            allOption.textContent = 'แสดงทั้งหมด';
-            allOption.classList.add('active');
-            filterDropdown.appendChild(allOption);
+        function populateCategoryChips() {
+            categoryFilterContainer.innerHTML = ''; // Clear skeletons
+            
+            // "All" button
+            const allBtn = document.createElement('button');
+            allBtn.className = 'category-chip active';
+            allBtn.textContent = 'แสดงทั้งหมด';
+            allBtn.dataset.value = 'all';
+            allBtn.addEventListener('click', () => handleCategoryClick(allBtn));
+            categoryFilterContainer.appendChild(allBtn);
+
             const allTags = new Set();
             allProducts.forEach(product => {
                 if (product.tags) {
@@ -841,43 +790,31 @@
                 }
             });
             const sortedTags = [...allTags].sort((a, b) => a.localeCompare(b, 'th'));
+            
             sortedTags.forEach(tag => {
-                const option = document.createElement('a');
-                option.href = '#';
-                option.dataset.value = tag;
-                option.textContent = tag;
-                filterDropdown.appendChild(option);
+                const btn = document.createElement('button');
+                btn.className = 'category-chip';
+                btn.textContent = tag;
+                btn.dataset.value = tag;
+                btn.addEventListener('click', () => handleCategoryClick(btn));
+                categoryFilterContainer.appendChild(btn);
             });
         }
         
-        function setupFilterDropdown() {
-            filterBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                filterDropdown.classList.toggle('show');
-                filterBtn.classList.toggle('open');
-            });
-            filterDropdown.addEventListener('click', (e) => {
-                if (e.target.tagName === 'A') {
-                    e.preventDefault();
-                    const selectedValue = e.target.dataset.value;
-                    const selectedText = e.target.textContent;
-                    if (currentFilter !== selectedValue) {
-                        currentFilter = selectedValue;
-                        currentFilterDisplay.textContent = selectedText;
-                        filterDropdown.querySelector('a.active')?.classList.remove('active');
-                        e.target.classList.add('active');
-                        updateDisplay();
-                    }
-                    filterDropdown.classList.remove('show');
-                    filterBtn.classList.remove('open');
-                }
-            });
-            document.addEventListener('click', () => {
-                if (filterDropdown.classList.contains('show')) {
-                    filterDropdown.classList.remove('show');
-                    filterBtn.classList.remove('open');
-                }
-            });
+        function handleCategoryClick(clickedBtn) {
+            // If dragging, ignore the click
+            if (isDraggingCategory) return;
+
+            // Remove active class from all chips
+            const buttons = categoryFilterContainer.querySelectorAll('.category-chip');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked
+            clickedBtn.classList.add('active');
+            
+            // Update filter
+            currentFilter = clickedBtn.dataset.value;
+            updateDisplay();
         }
 
         function setupTagsPopup() {
@@ -919,6 +856,60 @@
             });
         }
 
+        // --- DRAG TO SCROLL & WHEEL SUPPORT ---
+        function setupCategoryScrolling() {
+            const slider = categoryFilterContainer;
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+
+            // Mouse Down: Start Drag
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true;
+                isDraggingCategory = false; // Reset drag flag
+                slider.classList.add('active');
+                startX = e.pageX - slider.offsetLeft;
+                scrollLeft = slider.scrollLeft;
+            });
+
+            // Mouse Leave: Stop Drag
+            slider.addEventListener('mouseleave', () => {
+                isDown = false;
+                slider.classList.remove('active');
+            });
+
+            // Mouse Up: Stop Drag
+            slider.addEventListener('mouseup', () => {
+                isDown = false;
+                slider.classList.remove('active');
+                // Use setTimeout to ensure click event fires (if it was a click) before we reset dragging flag
+                setTimeout(() => { isDraggingCategory = false; }, 0);
+            });
+
+            // Mouse Move: Dragging logic
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - slider.offsetLeft;
+                const walk = (x - startX) * 2; // Scroll-fast multiplier
+                slider.scrollLeft = scrollLeft - walk;
+                
+                // If moved more than 5 pixels, consider it a drag
+                if (Math.abs(walk) > 5) {
+                    isDraggingCategory = true;
+                }
+            });
+
+            // Mouse Wheel: Horizontal scroll support
+            slider.addEventListener('wheel', (e) => {
+                if (e.deltaY !== 0) {
+                    // Prevent default vertical scroll only if we are scrolling horizontally
+                    e.preventDefault();
+                    slider.scrollLeft += e.deltaY;
+                }
+            });
+        }
+
         // --- FETCH DATA FROM APPS SCRIPT API ---
         function fetchData() {
             if (API_URL === "วาง_URL_ของ_APPS_SCRIPT_ที่นี่") {
@@ -926,8 +917,9 @@
                  return;
             }
 
-            // 1. เรียกแสดง Skeleton ก่อนเริ่มโหลดข้อมูล
             renderSkeletonLoading();
+            // Setup scrolling immediately for static elements
+            setupCategoryScrolling();
 
             fetch(API_URL)
                 .then(response => {
