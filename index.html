@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Preconnect for Image CDN -->
+    <link rel="preconnect" href="https://wsrv.nl">
     
     <style>
         /* --- CSS styles for page decoration --- */
@@ -17,6 +19,8 @@
             --text-color: #202124;
             --subtle-text-color: #5f6368;
             --border-radius: 16px;
+            --skeleton-base: #e0e0e0;
+            --skeleton-highlight: #f5f5f5;
         }
 
         body {
@@ -238,7 +242,6 @@
             gap: 10px;
             align-content: flex-start;
             justify-content: center;
-            min-height: 200px; /* Prevent collapse during load */
         }
         
         @keyframes fadeInUp {
@@ -255,6 +258,11 @@
             display: flex;
             flex-direction: column;
             position: relative;
+            /* Animation applied in JS/CSS dynamically for real cards */
+        }
+        
+        /* Apply fade-in only to real cards, not skeletons */
+        .product-card:not(.skeleton-card) {
             opacity: 0; 
             animation: fadeInUp 0.5s ease-out forwards;
         }
@@ -295,56 +303,43 @@
 
         .more-tags-btn:hover { background-color: #aecbfa; }
 
-        /* --- SKELETON LOADING STYLES (NEW) --- */
-        .skeleton {
-            background: #eee;
-            background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
-            border-radius: 5px;
+        /* --- SKELETON LOADING STYLES --- */
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton-shimmer {
+            background: #e0e0e0;
+            background: linear-gradient(90deg, 
+                var(--skeleton-base) 25%, 
+                var(--skeleton-highlight) 37%, 
+                var(--skeleton-base) 63%);
             background-size: 200% 100%;
-            animation: 1.5s shine linear infinite;
+            animation: shimmer 1.5s infinite linear;
         }
 
-        @keyframes shine {
-            to { background-position-x: -200%; }
-        }
-
-        .skeleton-card {
-            background-color: white;
-            border-radius: var(--border-radius);
-            border: 1px solid #eeeeee;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 300px; /* Approx height */
-        }
-
-        .skeleton-image {
-            width: 100%;
-            padding-top: 100%; /* Square aspect ratio */
-            position: relative;
+        /* Skeleton Card Structure */
+        .skeleton-card .product-image-container {
+            background-color: #eee; /* Fallback */
         }
         
-        .skeleton-content {
-            padding: 12px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+        .skeleton-text {
+            height: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
         }
+        
+        .skeleton-title { width: 80%; height: 1.2rem; margin-bottom: 8px; }
+        .skeleton-price { width: 40%; }
+        .skeleton-tag { width: 30%; height: 0.8rem; margin-left: auto; }
+        .skeleton-footer { width: 100%; height: 0.8rem; margin-top: auto; }
 
-        .skeleton-text { height: 16px; width: 80%; border-radius: 4px; }
-        .skeleton-text-short { height: 16px; width: 40%; border-radius: 4px; }
-        .skeleton-tag { height: 20px; width: 50px; border-radius: 16px; align-self: flex-end; }
-
-        /* Loading Overlay - Modified to be non-blocking initially */
+        /* Loading Overlay (Only for initial blocking if needed, but we use skeletons now) */
         #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(4px);
-            display: none; /* Hidden by default, managed by JS */
-            justify-content: center; align-items: center;
-            z-index: 9999; flex-direction: column;
-            color: var(--text-color); font-size: 1.2rem; font-weight: 500;
+            /* Disable full screen overlay to show skeletons */
+            display: none !important; 
         }
 
         .out-of-stock-overlay {
@@ -406,34 +401,15 @@
         .product-image {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
-            opacity: 1;
+            opacity: 0; /* Hidden initially, fade in on load */
+            transition: opacity 0.3s ease-in;
             z-index: 2;
         }
+        
+        .product-image.loaded {
+            opacity: 1;
+        }
 
-        /* Spinner for individual images */
-        .image-spinner {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #f8f9fa; 
-            z-index: 1;
-        }
-        
-        .image-spinner::after {
-            content: "";
-            width: 30px;
-            height: 30px;
-            border: 3px solid #ddd;
-            border-top: 3px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
         .product-info {
             padding: 0px 12px 12px; flex-grow: 1;
             display: flex; flex-direction: column;
@@ -467,39 +443,6 @@
             grid-column: 1 / -1;
         }
         
-        .loader {
-            border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color);
-            border-radius: 50%; width: 40px; height: 40px;
-            animation: spin 1s linear infinite; margin: 0 auto 20px;
-        }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Toast Notification for "Loaded from cache" */
-        #toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            border-radius: 50px;
-            padding: 12px;
-            position: fixed;
-            z-index: 10000;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            font-size: 0.9rem;
-            opacity: 0;
-            transition: opacity 0.5s, bottom 0.5s;
-        }
-
-        #toast.show {
-            visibility: visible;
-            opacity: 1;
-            bottom: 50px;
-        }
-
         @media (max-width: 600px) {
             #product-grid {
                 grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -510,7 +453,6 @@
                 margin-right: 30px;
                 padding: 20px 20px;
             }
-            .loader { width: 20px; height: 20px; }
             #message-container { font-size: 0.9rem; }
             .header h1 { font-size: 1.8rem; }
             
@@ -539,7 +481,6 @@
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
                 gap: 10px;
             }
-            .loader { width: 30px; height: 30px; }
             #message-container { font-size: 1rem; }
             body { padding: 30px; }
             .header h1 { font-size: 2.2rem; }
@@ -587,12 +528,6 @@
     </style>
 </head>
 <body>
-    <!-- Loading Overlay (Only used for hard reloads or errors) -->
-    <div id="loading-overlay">
-        <div class="loader"></div>
-        <div>กำลังอัปเดตข้อมูล...</div>
-    </div>
-
     <div id="app-container">
         <div class="header">
             <h1>คลังสินค้า</h1>
@@ -624,7 +559,9 @@
             </div>
         </div>
 
-        <div id="product-grid"></div>
+        <div id="product-grid">
+            <!-- Skeletons will be injected here automatically by JS -->
+        </div>
         
         <div id="load-more-container">
             <button id="load-more-btn">ดูเพิ่มเติม</button>
@@ -639,7 +576,6 @@
     </div>
     
     <button id="scroll-to-top-btn" title="กลับไปด้านบน">▲</button>
-    <div id="toast"></div>
     
     <script>
         // ******************************************************
@@ -647,10 +583,6 @@
         // ******************************************************
         const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2BiIPCm_K_ZoUEbnGNp8L_HnAP2X61df607Qx7GwkMrrtC/exec"; 
 
-        // --- CACHE CONFIGURATION ---
-        const CACHE_KEY = 'warehouse_stock_data';
-        const CACHE_DURATION = 1000 * 60 * 10; // 10 minutes cache
-        
         let allProducts = [];
         let filteredAndSortedProducts = [];
         let itemsPerPageDesktop = 14;
@@ -663,7 +595,6 @@
         const grid = document.getElementById('product-grid');
         const searchInput = document.getElementById('search-input');
         const hideOutOfStockCheckbox = document.getElementById('hide-out-of-stock-checkbox');
-        const loadingOverlay = document.getElementById('loading-overlay');
         const loadMoreBtn = document.getElementById('load-more-btn');
         const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
         const filterBtn = document.getElementById('filter-btn');
@@ -675,6 +606,40 @@
             if (num < 1000) return num.toLocaleString('th-TH');
             const valueInK = num / 1000;
             return valueInK.toFixed(1).replace(/\.0$/, '') + 'K';
+        }
+
+        // --- IMAGE OPTIMIZATION ---
+        // ใช้ wsrv.nl เพื่อ resize ภาพและแปลงเป็น webp ทำให้โหลดไวขึ้นมาก
+        function getOptimizedImageUrl(url) {
+            if (!url) return 'https://placehold.co/400x400/F1F3F4/5F6368?text=No+Image';
+            // ถ้า URL ไม่ใช่ http (เช่น base64) ให้คืนค่าเดิม
+            if (!url.startsWith('http')) return url;
+            
+            // ใช้ wsrv.nl proxy: w=400 (กว้าง 400px), q=80 (คุณภาพ 80%), output=webp
+            return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=400&q=80&output=webp`;
+        }
+
+        // --- SKELETON LOADING ---
+        function renderSkeletonLoading() {
+            updateItemsPerPage();
+            // สร้าง Skeleton cards ตามจำนวนที่จะแสดงผล
+            let skeletonHTML = '';
+            for (let i = 0; i < currentItemsPerPage; i++) {
+                skeletonHTML += `
+                    <div class="product-card skeleton-card">
+                        <div class="product-image-container skeleton-shimmer"></div>
+                        <div class="product-info">
+                            <div class="skeleton-text skeleton-title skeleton-shimmer"></div>
+                            <div class="price-and-tags-row">
+                                <div class="skeleton-text skeleton-price skeleton-shimmer"></div>
+                                <div class="skeleton-text skeleton-tag skeleton-shimmer"></div>
+                            </div>
+                            <div class="skeleton-text skeleton-footer skeleton-shimmer"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            grid.innerHTML = skeletonHTML;
         }
 
         function updateItemsPerPage() {
@@ -738,7 +703,8 @@
         }
         
         function renderProducts(productsToDisplay) {
-            const existingCardCount = grid.querySelectorAll('.product-card').length;
+            const existingCardCount = grid.querySelectorAll('.product-card:not(.skeleton-card)').length;
+            
             productsToDisplay.forEach((product, index) => {
                 const card = document.createElement('div');
                 card.className = 'product-card';
@@ -754,6 +720,9 @@
                 const formattedPrice = Number(product.price).toLocaleString('th-TH');
                 const formattedQuantityFull = displayQuantity.toLocaleString('th-TH');
                 const formattedQuantityK = formatQuantityToK(displayQuantity);
+                
+                // Optimized Image URL
+                const optimizedImgUrl = getOptimizedImageUrl(product.imageUrl);
 
                 const tagsArray = product.tags ? String(product.tags).split(',').map(t => t.trim()).filter(Boolean) : [];
                 let tagsHtml = '';
@@ -771,13 +740,18 @@
                 const outOfStockOverlayHtml = isOutOfStock ?
                     `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
 
+                // Logic: ใส่ class skeleton-shimmer ไว้ที่ container
+                // เมื่อรูปโหลดเสร็จ (onload) ให้ลบ class ออก
                 card.innerHTML = `
-                    <div class="product-image-container">
-                        <div class="image-spinner"></div>
+                    <div class="product-image-container skeleton-shimmer">
                         ${outOfStockOverlayHtml}
-                        <img src="${product.imageUrl}" class="product-image" alt="${product.name}" loading="lazy" 
-                             onload="this.parentElement.querySelector('.image-spinner').style.display='none';"
-                             onerror="this.parentElement.querySelector('.image-spinner').style.display='none'; this.onerror=null;this.src='https://placehold.co/150x150/F1F3F4/5F6368?text=No+Image';">
+                        <img src="${optimizedImgUrl}" 
+                             class="product-image" 
+                             alt="${product.name}" 
+                             loading="lazy"
+                             decoding="async"
+                             onload="this.classList.add('loaded'); this.parentElement.classList.remove('skeleton-shimmer');"
+                             onerror="this.parentElement.classList.remove('skeleton-shimmer'); this.onerror=null;this.src='https://placehold.co/400x400/F1F3F4/5F6368?text=No+Image'; this.classList.add('loaded');">
                     </div>
                     <div class="product-info">
                         <h2 class="product-name">${product.name}</h2>
@@ -807,111 +781,47 @@
             }
         }
 
-        // --- NEW: SKELETON LOADING FUNCTION ---
-        function renderSkeletons(count = 8) {
-            grid.innerHTML = '';
-            for(let i=0; i<count; i++) {
-                const skeleton = document.createElement('div');
-                skeleton.className = 'skeleton-card';
-                skeleton.innerHTML = `
-                    <div class="product-image-container skeleton">
-                        <div class="skeleton-image"></div>
-                    </div>
-                    <div class="skeleton-content">
-                        <div class="skeleton-text skeleton"></div>
-                        <div class="skeleton-text-short skeleton"></div>
-                        <div class="skeleton-tag skeleton"></div>
-                    </div>
-                `;
-                grid.appendChild(skeleton);
-            }
-        }
-
-        // --- NEW: CACHE MANAGEMENT ---
-        function getCachedData() {
-            try {
-                const cached = localStorage.getItem(CACHE_KEY);
-                if (!cached) return null;
-                const parsed = JSON.parse(cached);
-                // Check if expired
-                if (Date.now() - parsed.timestamp > CACHE_DURATION) {
-                    console.log("Cache expired");
-                    return null;
-                }
-                return parsed.data;
-            } catch (e) {
-                console.error("Cache error", e);
-                return null;
-            }
-        }
-
-        function saveCache(data) {
-            try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify({
-                    timestamp: Date.now(),
-                    data: data
-                }));
-            } catch (e) {
-                console.error("Storage full or error", e);
-            }
-        }
-        
-        function showToast(message) {
-            const toast = document.getElementById("toast");
-            toast.className = "show";
-            toast.innerText = message;
-            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
-        }
-
-        function onDataLoaded(data, isFromCache = false) {
-            loadingOverlay.style.display = 'none';
+        function onDataLoaded(data) {
+            // ไม่ต้องซ่อน loadingOverlay แล้วเพราะเราใช้ Skeleton แทน
+            // แต่เคลียร์ Skeleton ชุดแรกออกก่อน render ของจริง
+            
             if (data.error) {
-                if(!isFromCache) grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาด: ${data.error}</div>`;
+                grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาด: ${data.error}</div>`;
                 return;
             }
             if (!data || data.length === 0) {
-                if(!isFromCache) grid.innerHTML = '<div id="message-container">ไม่สามารถโหลดข้อมูลได้ หรือไม่มีสินค้าในคลัง</div>';
+                grid.innerHTML = '<div id="message-container">ไม่สามารถโหลดข้อมูลได้ หรือไม่มีสินค้าในคลัง</div>';
                 return;
             }
-            
-            // Save to global var
             allProducts = data;
+            // เรียงลำดับตามชื่อ
             allProducts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
-            
-            // If it's a fresh fetch, update cache
-            if (!isFromCache) {
-                saveCache(allProducts);
-            } else {
-                // Optional: Show a subtle message that data is from cache
-                // showToast("แสดงข้อมูลล่าสุดจากเครื่อง");
-            }
-
-            // Update UI
             populateTagFilter();
             updateDisplay();
             
             searchInput.addEventListener('input', updateDisplay);
             hideOutOfStockCheckbox.addEventListener('change', updateDisplay);
             setupFilterDropdown();
+            loadMoreBtn.addEventListener('click', () => {
+                hasLoadedMore = true;
+                const productsCurrentlyShown = grid.querySelectorAll('.product-card:not(.skeleton-card)').length;
+                const remainingProducts = filteredAndSortedProducts.slice(productsCurrentlyShown);
+                if (remainingProducts.length > 0) renderProducts(remainingProducts);
+                loadMoreBtn.style.display = 'none';
+            });
+            window.addEventListener('resize', () => {
+                // ระวัง: การ resize จะเคลียร์และวาดใหม่
+                // ถ้าข้อมูลโหลดแล้วก็วาดใหม่ได้เลย
+                if(allProducts.length > 0) {
+                    grid.innerHTML = '';
+                    renderProductBatch();
+                }
+            });
             setupTagsPopup();
             setupScrollToTopButton();
         }
 
-        // Initialize Listeners only once
-        loadMoreBtn.addEventListener('click', () => {
-            hasLoadedMore = true;
-            const productsCurrentlyShown = grid.childElementCount;
-            const remainingProducts = filteredAndSortedProducts.slice(productsCurrentlyShown);
-            if (remainingProducts.length > 0) renderProducts(remainingProducts);
-            loadMoreBtn.style.display = 'none';
-        });
-        window.addEventListener('resize', () => {
-            grid.innerHTML = '';
-            renderProductBatch();
-        });
-
         function onLoadError(error) {
-            loadingOverlay.style.display = 'none';
             grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาดในการเชื่อมต่อ: ${error.message || 'ไม่ทราบข้อผิดพลาด'}</div>`;
         }
         
@@ -941,39 +851,6 @@
         }
         
         function setupFilterDropdown() {
-            // Remove old listeners to prevent duplicates if function called multiple times? 
-            // Better to use a flag or just simplistic approach:
-            // Since onDataLoaded is called once per flow (cache OR fetch), it's fine.
-            
-            // Cloning to remove existing listeners (quick reset trick)
-            const newFilterBtn = filterBtn.cloneNode(true);
-            filterBtn.parentNode.replaceChild(newFilterBtn, filterBtn);
-            
-            // Re-select
-            const freshFilterBtn = document.getElementById('filter-btn');
-            
-            freshFilterBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                filterDropdown.classList.toggle('show');
-                freshFilterBtn.classList.toggle('open');
-            });
-            
-            // Reset dropdown listener too
-            const newFilterDropdown = filterDropdown.cloneNode(false); // shallow clone container
-            filterDropdown.parentNode.replaceChild(newFilterDropdown, filterDropdown);
-            
-            // Note: populateTagFilter fills the dropdown content, so we need to re-call it or just keep content?
-            // Actually, populateTagFilter is called inside onDataLoaded BEFORE this.
-            // So we just need to re-attach the event delegation to the *existing* dropdown if we didn't clone it.
-            // Simplified: Just use a flag to init listeners once.
-        }
-        
-        // Better Filter Setup Pattern:
-        let isFilterSetup = false;
-        function setupFilterDropdown() {
-            if (isFilterSetup) return;
-            isFilterSetup = true;
-
             filterBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 filterDropdown.classList.toggle('show');
@@ -1003,11 +880,7 @@
             });
         }
 
-        let isPopupSetup = false;
         function setupTagsPopup() {
-            if (isPopupSetup) return;
-            isPopupSetup = true;
-            
             const tagsPopupOverlay = document.getElementById('tags-popup-overlay');
             const popupProductName = document.getElementById('popup-product-name');
             const tagsPopupList = document.getElementById('tags-popup-list');
@@ -1046,32 +919,22 @@
             });
         }
 
-        // --- FETCH DATA LOGIC WITH CACHE ---
+        // --- FETCH DATA FROM APPS SCRIPT API ---
         function fetchData() {
             if (API_URL === "วาง_URL_ของ_APPS_SCRIPT_ที่นี่") {
                  grid.innerHTML = '<div id="message-container">กรุณาใส่ URL ของ Apps Script ในตัวแปร API_URL</div>';
-                 loadingOverlay.style.display = 'none';
                  return;
             }
 
-            // 1. Try Cache First
-            const cachedData = getCachedData();
-            if (cachedData) {
-                console.log("Using cached data");
-                onDataLoaded(cachedData, true);
-                return; // Stop here if cache is valid (Faster!)
-            }
+            // 1. เรียกแสดง Skeleton ก่อนเริ่มโหลดข้อมูล
+            renderSkeletonLoading();
 
-            // 2. If no cache, Show Skeleton
-            renderSkeletons(8); 
-
-            // 3. Fetch from Network
             fetch(API_URL)
                 .then(response => {
                     if (!response.ok) throw new Error('Network response was not ok');
                     return response.json();
                 })
-                .then(data => onDataLoaded(data, false))
+                .then(data => onDataLoaded(data))
                 .catch(error => onLoadError(error));
         }
 
