@@ -88,24 +88,32 @@
 <body>
 
     <!-- Search Section -->
-    <div class="max-w-7xl mx-auto px-4 pt-10 pb-2">
-        <div class="max-w-2xl mx-auto mb-2">
+    <div class="max-w-7xl mx-auto px-4 pt-5 pb-2">
+        <div class="max-w-3xl mx-auto mb-2">
             <div class="relative group">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400 group-focus-within:text-[var(--primary)] transition-colors" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <svg class="h-5 w-5 text-gray-400 transition-colors" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
                     </svg>
                 </div>
-                <!-- เปลี่ยน Placeholder ตามที่ขอ -->
+                <!-- Adjusted padding-right (pr-12) to make space for the X button -->
+                <!-- Removed focus:ring-2 focus:ring-[var(--primary-light)] focus:border-transparent to remove focus effect -->
                 <input type="text" id="search-input" 
-                    class="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-full leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-light)] focus:border-transparent transition-all shadow-sm text-gray-700"
+                    class="block w-full pl-11 pr-12 py-4 border border-gray-200 rounded-full leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-gray-200 transition-none shadow-sm text-gray-700"
                     placeholder="ค้นหาไอดีออเดอร์ ลูกค้า ตัวละคร...">
+                
+                <!-- Clear Button (Hidden by default) -->
+                <button id="clear-search-btn" class="absolute inset-y-0 right-0 pr-3 flex items-center hidden text-gray-400 hover:text-gray-600 focus:outline-none transition-colors" title="ล้างคำค้นหา">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Dashboard Summary -->
-    <div class="max-w-7xl mx-auto px-4 py-4 mt-2">
+    <div class="max-w-7xl mx-auto px-4 py-4">
         <div class="grid grid-cols-2 gap-6 mb-8">
             <div class="theme-bg-primary-gradient rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group">
                 <div class="relative z-10">
@@ -179,7 +187,7 @@
     </div>
 
     <!-- Modal (Popup) -->
-    <div id="order-modal" class="fixed inset-0 z-50 hidden backdrop-blur-sm bg-black/50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div id="order-modal" class="fixed inset-0 z-50 hidden backdrop-blur-sm bg-black/50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 z-[9999]">
         <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
             
             <!-- Modal Header -->
@@ -270,6 +278,7 @@
         let currentOpenOrder = null;
 
         const searchInput = document.getElementById('search-input');
+        const clearSearchBtn = document.getElementById('clear-search-btn');
 
         function getGameInfo(gameId) {
             if (GAME_DATA[gameId]) {
@@ -567,9 +576,26 @@
             }
         });
 
+        // Search Input & Clear Button Logic
         searchInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            // Toggle Clear Button
+            if (val.length > 0) {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+            // Logic Search
             currentPage = 1; 
-            processOrders(e.target.value);
+            processOrders(val);
+        });
+
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            clearSearchBtn.classList.add('hidden');
+            searchInput.focus();
+            currentPage = 1;
+            processOrders('');
         });
 
         function getStatusStyle(status) {
