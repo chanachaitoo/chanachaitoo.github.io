@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", function() {
         },
         {
             name: "ออเดอร์",
-            link: "Order.html",
+            link: "order.html",
             icon: "fas fa-clipboard-list",
             isActive: page === "Order.html"
         }
