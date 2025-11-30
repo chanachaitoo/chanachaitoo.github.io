@@ -38,22 +38,11 @@
             max-width: 1400px;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .header h1 {
-            font-size: 3rem;
-            font-weight: 700;
-            color: var(--text-color);
-            margin: 0;
-        }
-        
         /* Wrapper for Search and Controls */
+        /* --- แก้ไข: ปรับระยะห่างด้านบน (margin-top) ให้สมดุล --- */
         .controls-wrapper {
             max-width: 800px;
-            margin: 0 auto 20px;
+            margin: 20px auto 20px; /* แก้ไข: เปลี่ยนจาก 0 เป็น 20px เพื่อเพิ่มระยะห่างด้านบน */
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -323,7 +312,7 @@
             background-color: rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(5px);
             display: flex; justify-content: center; align-items: center;
-            z-index: 2000; padding: 15px;
+            z-index: 10000; padding: 15px; /* Updated z-index */
             opacity: 0; visibility: hidden;
             transition: opacity 0.3s, visibility 0.3s;
         }
@@ -413,7 +402,7 @@
                 padding: 20px 20px;
             }
             #message-container { font-size: 0.9rem; }
-            .header h1 { font-size: 1.8rem; }
+            /* header style removed here */
             
             /* Removed dropdown styles, kept compact search */
             .search-icon { left: 15px; }
@@ -441,7 +430,7 @@
             }
             #message-container { font-size: 1rem; }
             body { padding: 30px; }
-            .header h1 { font-size: 2.2rem; }
+            /* header style removed here */
             .product-info { padding: 0 12px 12px; }
             .product-name { font-size: 1.2rem; }
             .product-price { font-size: 1rem; }
@@ -468,7 +457,8 @@
         #load-more-btn:active { transform: scale(0.98); }
 
         #scroll-to-top-btn {
-            display: none; position: fixed; bottom: 25px; right: 25px;
+            display: none; position: fixed; bottom: 85px; /* Moved up to clear mobile nav */
+            right: 25px;
             z-index: 1500; border: none; outline: none;
             background-color: #5f6368; color: white;
             cursor: pointer; padding: 0; border-radius: 50%;
@@ -481,15 +471,13 @@
         #scroll-to-top-btn:hover { background-color: var(--primary-color); opacity: 1; }
 
         @media (max-width: 600px) {
-            #scroll-to-top-btn { width: 40px; height: 40px; font-size: 20px; bottom: 30px; right: 20px; }
+            #scroll-to-top-btn { width: 40px; height: 40px; font-size: 20px; bottom: 80px; right: 20px; }
         }
     </style>
 </head>
 <body>
     <div id="app-container">
-        <div class="header">
-            <h1>สินค้า</h1>
-        </div>
+        <!-- Header removed as requested -->
         
         <div class="controls-wrapper">
             <!-- Search Bar -->
@@ -536,6 +524,9 @@
     
     <button id="scroll-to-top-btn" title="กลับไปด้านบน">▲</button>
     
+    <!-- LINK TO SHARED MENU SCRIPT -->
+    <script src="menu.js"></script>
+
     <script>
         // ******************************************************
         // IMPORTANT: แทนที่ URL นี้ด้วย URL ของ Web App ที่คุณ Deploy
