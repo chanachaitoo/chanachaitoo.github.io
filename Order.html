@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบติดตามออเดอร์</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ใช้ฟอนต์ Noto Sans Thai -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Preconnect to Image CDN -->
+    <link rel="preconnect" href="https://wsrv.nl">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        /* ==========================================================================
+           โซนตั้งค่าสี (THEME CONFIGURATION)
+           ========================================================================== */
+        :root {
+            /* 1. สีพื้นหลัง */
+            --bg-body: #f3f4f6;
+
+            /* 2. สีหลัก (Primary) */
+            --primary: #2563eb;       
+            --primary-light: #60a5fa; 
+            --primary-dark: #1e40af;  
+
+            /* 3. สีรอง (Secondary) */
+            --secondary-start: #10b981; 
+            --secondary-end: #34d399;   
+
+            /* 4. สีสถานะทั่วไป (General Status) */
+            --status-pending: #f97316;   
+            --status-success: #22c55e;   
+            
+            /* 5. สีเฉพาะของแต่ละสถานะ (Specific Process Colors) */
+            --proc-received: #6b7280; /* รับเข้า - เทา */
+            --proc-queue: #f97316;    /* รอคิว - ส้ม */
+            --proc-working: #2563eb;  /* เริ่มงาน - น้ำเงิน */
+            --proc-waiting: #9333ea;  /* รอส่ง - ม่วง */
+            --proc-done: #22c55e;     /* เรียบร้อยแล้ว - เขียว */
+
+            --bg-card: #ffffff;
+            --text-main: #374151;
+            --text-sub: #6b7280;
+        }
+
+        /* นำตัวแปรสีมาใช้งาน */
+        body { 
+            font-family: 'Noto Sans Thai', sans-serif; 
+            background-color: var(--bg-body);
+            color: var(--text-main);
+        }
+        
+        .theme-text-primary { color: var(--primary); }
+        .theme-bg-primary-gradient { background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); }
+        .theme-bg-secondary-gradient { background: linear-gradient(135deg, var(--secondary-start), var(--secondary-end)); }
+        
+        .theme-text-pending { color: var(--status-pending); }
+        .theme-bg-pending { background-color: var(--status-pending); }
+        
+        .theme-text-success { color: var(--status-success); }
+        .theme-bg-success { background-color: var(--status-success); }
+
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        
+        /* ปรับแต่ง Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Skeleton Loading Animation */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 0.5rem;
+        }
+        /* Skeleton สำหรับพื้นหลังสีขาว (การ์ดรายการ) */
+        .skeleton-dark {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 0.5rem;
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="max-w-7xl mx-auto px-4 pt-10 pb-4 text-center">
+        <h1 class="text-5xl font-bold text-gray-800 tracking-tight">
+            ออเดอร์
+        </h1>
+    </div>
+
+    <!-- Dashboard Summary -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="grid grid-cols-2 gap-6 mb-8">
+            <div class="theme-bg-primary-gradient rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group">
+                <div class="relative z-10">
+                    <div class="text-xl font-medium opacity-90 mb-1">จำนวนออเดอร์</div>
+                    <div id="total-orders" class="text-5xl font-bold tracking-tight">
+                        <div class="h-12 w-24 skeleton rounded-lg mt-1"></div>
+                    </div>
+                </div>
+                <div class="absolute right-[-10px] bottom-[-10px] opacity-20 transform rotate-12 group-hover:scale-110 transition-transform duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                </div>
+            </div>
+            
+            <div class="theme-bg-secondary-gradient rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group">
+                <div class="relative z-10">
+                    <div class="text-xl font-medium opacity-90 mb-1">จำนวนสินค้า</div>
+                    <div id="total-products" class="text-5xl font-bold tracking-tight">
+                        <div class="h-12 w-24 skeleton rounded-lg mt-1"></div>
+                    </div>
+                </div>
+                <div class="absolute right-[-10px] bottom-[-10px] opacity-20 transform rotate-12 group-hover:scale-110 transition-transform duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Column 1: Pending Orders -->
+            <div class="bg-white rounded-3xl p-6 shadow-sm min-h-[500px]">
+                <h2 class="text-lg font-bold mb-4 flex items-center theme-text-pending">
+                    <span class="w-3 h-3 rounded-full theme-bg-pending mr-2"></span>
+                    กำลังดำเนินการ
+                </h2>
+                <div id="pending-list" class="space-y-4">
+                    <!-- Skeleton Loader -->
+                </div>
+            </div>
+
+            <!-- Column 2: Completed Orders -->
+            <div class="bg-white rounded-3xl p-6 shadow-sm min-h-[500px] flex flex-col">
+                <h2 class="text-lg font-bold mb-4 flex items-center theme-text-success">
+                    <span class="w-3 h-3 rounded-full theme-bg-success mr-2"></span>
+                    เรียบร้อยแล้ว
+                </h2>
+                <div id="completed-list" class="space-y-4 flex-grow">
+                    <!-- Skeleton Loader -->
+                </div>
+                <!-- Pagination Controls -->
+                <div id="pagination-controls" class="hidden flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+                    <button id="prev-btn" class="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-chevron-left mr-1"></i> ก่อนหน้า
+                    </button>
+                    <span class="text-sm text-gray-500" id="page-info">หน้า 1</span>
+                    <button id="next-btn" class="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        ถัดไป <i class="fas fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal (Popup) -->
+    <div id="order-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
+            
+            <!-- Modal Header -->
+            <div class="bg-gray-50 px-6 py-4 border-b flex justify-between items-center flex-none rounded-t-2xl">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800" id="m-order-id">เลขที่ออเดอร์</h3>
+                    <p class="text-sm text-gray-500" id="m-order-date">วันที่</p>
+                </div>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 bg-gray-100 p-2 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto custom-scroll flex-1 overscroll-contain">
+                <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+                    <div class="bg-gray-50 p-3 rounded-lg flex items-center gap-3">
+                        <div id="m-game-logo" class="w-10 h-10 rounded-full bg-white border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                             <!-- Logo -->
+                        </div>
+                        <div>
+                            <span class="block text-gray-400 text-xs uppercase">เกมส์</span>
+                            <span class="font-semibold" id="m-game-id">-</span>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <span class="block text-gray-400 text-xs uppercase">ไอดีบัญชีลูกค้า</span>
+                        <span class="font-semibold" id="m-customer-id">-</span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <span class="block text-gray-400 text-xs uppercase">สถานะการชำระเงิน</span>
+                        <span class="font-semibold" id="m-payment">-</span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <span class="block text-gray-400 text-xs uppercase">ราคารวม</span>
+                        <span class="font-semibold theme-text-primary" id="m-price">-</span>
+                    </div>
+                </div>
+
+                <h4 class="font-bold mb-3 border-l-4 pl-3" style="border-color: var(--primary);">รายการสินค้า</h4>
+                <div id="m-product-list" class="space-y-4 pb-2">
+                    <!-- Product Items -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 transition-transform duration-300 flex items-center gap-2 z-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <span id="toast-message">แจ้งเตือน</span>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwygcJWfjcLXn3IB7QV4fmD0xSMSqfICob-TfkkEDcZlawkq1Z1qWqvGGiMIjOxL7jv/exec'; 
+
+        const GAME_DATA = {
+            "Game001": {
+                name: "Chibi Planet",
+                logo: "https://scontent.fnak3-1.fna.fbcdn.net/v/t39.30808-6/454034457_888216613326832_350146185151871213_n.jpg?_nc_cat=100&cb2=99be929b-a592a72f&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=wS2bwUNomx8Q7kNvwFLSCWl&_nc_oc=AdlNYCDS2RinC6SOd1IhPsxFeMvpIcgn-0n6F2U-jpj8QX3RaWFU9BrV_nMcXekYPjA&_nc_zt=23&_nc_ht=scontent.fnak3-1.fna&_nc_gid=OMljTASTpY8KftyJ7As4jA&oh=00_Afhs8hqzCIRB9sLnV0ahGCZw5VkBN231cRHg54VsPPFHCQ&oe=6931B63F"
+            },
+            "Game002": {
+                name: "Zabb World",
+                logo: "https://scontent.fnak3-1.fna.fbcdn.net/v/t39.30808-6/481112265_1236524098476464_4209232438207953182_n.jpg?_nc_cat=100&cb2=99be929b-a592a72f&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=2mCNyArRQUUQ7kNvwFvA7s4&_nc_oc=Adl5ZjHBoXGw7-g8e9Jq7a5I6DgnDC2Bu8syocL1re9jNIPkcy6LHOSffXIxB50KHZ4&_nc_zt=23&_nc_ht=scontent.fnak3-1.fna&_nc_gid=beyM7XhPrUzXtG0IiIiVXA&oh=00_AfhxjYMUMvjDjc00qjdvnJ1MCftZEY0mop2Kexk-Hasytw&oe=6931C25C"
+            }
+        };
+
+        // --- Mock Data with various statuses ---
+        const longItemsList = Array.from({length: 10}, (_, i) => {
+             const statuses = ["รับเข้า", "รอคิว", "เริ่มงาน", "รอส่ง", "เรียบร้อยแล้ว"];
+             const status = statuses[i % statuses.length];
+             return {
+                 product_name: `Test Item ${i+1}`,
+                 product_id: `P-TEST-${i}`,
+                 product_type_name: "ไอเทมทั่วไป", 
+                 customer_game_id: "player_one",
+                 quantity_done: 1,
+                 quantity_total: 1,
+                 delivery_note: "-",
+                 process_status: status, 
+                 image_link: ""
+             };
+        });
+
+        const MOCK_DATA = [
+            {
+                order_id: "ORD-001 (สถานะหลากหลาย)",
+                order_date: "2023-10-25T10:30:00",
+                game_id: "Game001", 
+                customer_account_id: "user_test01",
+                payment_status: "Paid",
+                net_price: 1500, // จำนวนเต็ม
+                is_completed: false,
+                items: [
+                    {
+                        product_name: "Diamond Pack XL",
+                        product_id: "P-001",
+                        product_type_name: "แพ็คเกจ", // Mock type
+                        customer_game_id: "player_one",
+                        quantity_done: 0,
+                        quantity_total: 2,
+                        delivery_note: "ส่งทาง ID",
+                        process_status: "รับเข้า",
+                        image_link: "https://drive.google.com/file/d/123456789/view?usp=sharing"
+                    },
+                     {
+                        product_name: "Gold Coin Set",
+                        product_id: "P-002",
+                        product_type_name: "เงินในเกม", // Mock type
+                        customer_game_id: "player_one",
+                        quantity_done: 0,
+                        quantity_total: 5,
+                        delivery_note: "-",
+                        process_status: "รอคิว",
+                        image_link: ""
+                    },
+                    ...longItemsList 
+                ]
+            },
+            ...Array.from({length: 15}, (_, i) => ({
+                order_id: `ORD-MOCK-${800-i}`, 
+                order_date: `2023-10-${20-i}T09:00:00`,
+                game_id: "Game001",
+                customer_account_id: `user_${i}`,
+                payment_status: "Paid",
+                net_price: 100.50, // มีเศษ
+                is_completed: true,
+                items: []
+            }))
+        ];
+
+        let allOrders = [];
+        let completedOrdersList = []; 
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        function getGameInfo(gameId) {
+            if (GAME_DATA[gameId]) {
+                return GAME_DATA[gameId];
+            }
+            return { name: gameId || '-', logo: null };
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('translate-y-20');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20');
+            }, 5000);
+        }
+
+        function renderSkeletonLoader() {
+            const pendingList = document.getElementById('pending-list');
+            const completedList = document.getElementById('completed-list');
+            
+            const skeletonHTML = `
+                <div class="bg-white border border-gray-100 rounded-2xl p-4 mb-4">
+                    <div class="flex justify-between mb-2">
+                        <div class="h-4 w-24 skeleton-dark"></div>
+                        <div class="h-3 w-3 rounded-full skeleton-dark"></div>
+                    </div>
+                    <div class="h-6 w-32 skeleton-dark mb-2"></div>
+                    <div class="h-4 w-20 skeleton-dark mt-2"></div>
+                </div>
+            `;
+            pendingList.innerHTML = skeletonHTML.repeat(3);
+            completedList.innerHTML = skeletonHTML.repeat(3);
+        }
+
+        async function fetchData() {
+            renderSkeletonLoader();
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                allOrders = data;
+                processOrders();
+                
+            } catch (error) {
+                console.warn('API Error, using mock data:', error);
+                showToast('ไม่สามารถดึงข้อมูลจริงได้ แสดงข้อมูลตัวอย่างแทน');
+                allOrders = MOCK_DATA;
+                processOrders();
+            }
+        }
+
+        function processOrders() {
+            // Revert: แสดงข้อมูลทั้งหมด ไม่ว่าจะจำนวนเต็มหรือทศนิยม
+            allOrders.sort((a, b) => {
+                const numA = parseInt(a.order_id.replace(/\D/g, '')) || 0;
+                const numB = parseInt(b.order_id.replace(/\D/g, '')) || 0;
+                return numB - numA;
+            });
+            renderDashboard();
+        }
+
+        function formatDate(dateString) {
+            if(!dateString) return "-";
+            const date = new Date(dateString);
+            const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            const day = date.getDate();
+            const month = months[date.getMonth()];
+            let year = date.getFullYear();
+            if (year < 2400) year += 543;
+            return `${day} ${month} ${year}`;
+        }
+
+        // --- FORMAT: ปรับปรุงการแสดงผลราคาตามเงื่อนไขใหม่ ---
+        function formatNumber(num) {
+            const val = parseFloat(num);
+            // ถ้าเป็นจำนวนเต็ม (เช่น 25.00) ให้ตัดทศนิยมออก
+            if (Number.isInteger(val)) {
+                return val.toLocaleString('th-TH', { 
+                    minimumFractionDigits: 0, 
+                    maximumFractionDigits: 0 
+                });
+            }
+            // ถ้ามีทศนิยม (เช่น 137.50) ให้แสดง 2 ตำแหน่ง
+            return val.toLocaleString('th-TH', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            });
+        }
+
+        function getDriveDirectLink(url) {
+            if (!url) return '';
+            let id = '';
+            if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+                const parts = url.split('/');
+                const dIndex = parts.indexOf('d');
+                if (dIndex !== -1 && parts[dIndex + 1]) {
+                    id = parts[dIndex + 1];
+                } else {
+                    try {
+                        const urlObj = new URL(url);
+                        id = urlObj.searchParams.get('id');
+                    } catch(e) {
+                        const match = url.match(/id=([a-zA-Z0-9_-]+)/);
+                        if (match) id = match[1];
+                    }
+                }
+            }
+            if (id) {
+                const googleExportUrl = `https://drive.google.com/uc?id=${id}`;
+                return `https://wsrv.nl/?url=${encodeURIComponent(googleExportUrl)}&w=200&h=200&fit=cover&output=webp&q=75`;
+            }
+            return url;
+        }
+
+        function renderDashboard() {
+            const pendingList = document.getElementById('pending-list');
+            const completedList = document.getElementById('completed-list');
+            
+            pendingList.innerHTML = '';
+            completedList.innerHTML = '';
+
+            let totalProducts = 0;
+            let pendingOrders = [];
+            completedOrdersList = []; 
+
+            if (allOrders.length === 0) {
+                pendingList.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่พบข้อมูล</div>';
+                completedList.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่พบข้อมูล</div>';
+            }
+
+            allOrders.forEach(order => {
+                totalProducts += order.items ? order.items.length : 0;
+                if (order.is_completed) {
+                    completedOrdersList.push(order);
+                } else {
+                    pendingOrders.push(order);
+                }
+            });
+
+            // Count format can be simple integer
+            document.getElementById('total-orders').innerText = allOrders.length.toLocaleString();
+            document.getElementById('total-products').innerText = totalProducts.toLocaleString();
+
+            if (pendingOrders.length === 0) {
+                pendingList.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่มีรายการค้าง</div>';
+            } else {
+                pendingOrders.forEach(order => {
+                    const card = createCard(order);
+                    pendingList.appendChild(card);
+                });
+            }
+
+            renderCompletedOrdersPage();
+        }
+
+        function renderCompletedOrdersPage() {
+            const completedList = document.getElementById('completed-list');
+            completedList.innerHTML = '';
+
+            if (completedOrdersList.length === 0) {
+                completedList.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่มีรายการที่สำเร็จแล้ว</div>';
+                togglePagination(false);
+                return;
+            }
+
+            // Pagination: แสดงทีละ 10
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageItems = completedOrdersList.slice(startIndex, endIndex);
+
+            pageItems.forEach(order => {
+                const card = createCard(order);
+                completedList.appendChild(card);
+            });
+
+            updatePaginationControls();
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(completedOrdersList.length / itemsPerPage);
+            const controls = document.getElementById('pagination-controls');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const pageInfo = document.getElementById('page-info');
+
+            if (totalPages <= 1) {
+                controls.classList.add('hidden');
+            } else {
+                controls.classList.remove('hidden');
+                pageInfo.innerText = `หน้า ${currentPage} / ${totalPages}`;
+                
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === totalPages;
+            }
+        }
+
+        function togglePagination(show) {
+            const controls = document.getElementById('pagination-controls');
+            if (show) controls.classList.remove('hidden');
+            else controls.classList.add('hidden');
+        }
+
+        function createCard(order) {
+            const card = document.createElement('div');
+            card.className = "bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer transition-all duration-200 group hover:shadow-md hover:border-blue-100";
+            card.addEventListener('click', () => openModal(order));
+
+            const isPending = !order.is_completed;
+            const statusClass = isPending ? 'theme-bg-pending' : 'theme-bg-success';
+            
+            // ใช้ formatNumber แบบใหม่
+            const priceDisplay = order.net_price ? formatNumber(order.net_price) : '0';
+            const itemCount = order.items ? order.items.length : 0;
+
+            const gameInfo = getGameInfo(order.game_id);
+            const gameLogoHtml = gameInfo.logo 
+                ? `<img src="${gameInfo.logo}" class="w-6 h-6 rounded-full object-cover border border-gray-200" alt="${gameInfo.name}">`
+                : `<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>`;
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span class="text-xs text-gray-400 block mb-1">${formatDate(order.order_date)}</span>
+                        <h3 class="font-bold text-gray-800 text-lg transition-colors group-hover:text-[var(--primary)]">
+                            ${order.order_id}
+                        </h3>
+                    </div>
+                    <div class="${statusClass} w-2 h-2 rounded-full mt-2"></div>
+                </div>
+                <div class="flex items-center text-sm text-gray-500 gap-2 mt-2">
+                    ${gameLogoHtml}
+                    <span class="font-medium">${gameInfo.name}</span>
+                </div>
+                <div class="mt-3 flex justify-between items-end border-t border-gray-200 pt-2">
+                        <span class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">${itemCount} รายการ</span>
+                        <span class="font-semibold text-gray-700">${priceDisplay} บาท</span>
+                </div>
+            `;
+            return card;
+        }
+
+        document.getElementById('prev-btn').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderCompletedOrdersPage();
+            }
+        });
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            const totalPages = Math.ceil(completedOrdersList.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderCompletedOrdersPage();
+            }
+        });
+
+        function getStatusStyle(status) {
+            const s = (status || "").trim();
+            if (s === "รับเข้า" || s === "Received") {
+                return "bg-gray-100 text-gray-600 border-gray-200"; 
+            } else if (s === "รอคิว" || s === "Queue") {
+                return "bg-orange-100 text-orange-600 border-orange-200"; 
+            } else if (s === "เริ่มงาน" || s === "In Progress" || s === "กำลังดำเนินการ" || s === "กำลังเติม") {
+                return "bg-blue-100 text-blue-600 border-blue-200"; 
+            } else if (s === "รอส่ง" || s === "Waiting") {
+                return "bg-purple-100 text-purple-600 border-purple-200"; 
+            } else if (s === "เรียบร้อยแล้ว" || s === "Completed") {
+                return "bg-green-100 text-green-600 border-green-200"; 
+            } else {
+                return "bg-gray-100 text-gray-500 border-gray-200"; 
+            }
+        }
+
+        const modal = document.getElementById('order-modal');
+        const modalContent = document.getElementById('modal-content');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        function openModal(order) {
+            document.body.style.overflow = 'hidden';
+
+            document.getElementById('m-order-id').innerText = order.order_id;
+            document.getElementById('m-order-date').innerText = formatDate(order.order_date);
+            
+            const gameInfo = getGameInfo(order.game_id);
+            document.getElementById('m-game-id').innerText = gameInfo.name;
+            
+            const logoContainer = document.getElementById('m-game-logo');
+            if (gameInfo.logo) {
+                logoContainer.innerHTML = `<img src="${gameInfo.logo}" class="w-full h-full object-cover">`;
+                logoContainer.classList.remove('hidden');
+            } else {
+                 logoContainer.innerHTML = `<svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>`;
+            }
+
+            document.getElementById('m-customer-id').innerText = order.customer_account_id || '-';
+            
+            const payEl = document.getElementById('m-payment');
+            payEl.innerText = order.payment_status || 'Pending';
+            
+            payEl.className = `font-semibold ${order.payment_status === 'Paid' || order.payment_status === 'จ่ายแล้ว' ? 'theme-text-success' : 'theme-text-pending'}`;
+            
+            // Format Price in Modal
+            document.getElementById('m-price').innerText = (order.net_price ? formatNumber(order.net_price) : '0') + ' บาท';
+
+            const productList = document.getElementById('m-product-list');
+            productList.innerHTML = '';
+            
+            if (order.items && order.items.length > 0) {
+                const sortedItems = [...order.items].sort((a, b) => {
+                    const isDoneA = a.process_status === 'เรียบร้อยแล้ว' || a.process_status === 'Completed';
+                    const isDoneB = b.process_status === 'เรียบร้อยแล้ว' || b.process_status === 'Completed';
+                    return (isDoneA === isDoneB) ? 0 : isDoneA ? 1 : -1;
+                });
+
+                sortedItems.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    // เพิ่ม items-center เพื่อจัดรูปภาพให้อยู่กลางการ์ด
+                    itemDiv.className = "flex gap-4 p-3 bg-white border border-gray-100 rounded-xl shadow-sm items-center";
+                    
+                    const statusClass = getStatusStyle(item.process_status);
+
+                    const rawImgUrl = item.image_link;
+                    const displayImgUrl = getDriveDirectLink(rawImgUrl);
+
+                    const imgHtml = displayImgUrl 
+                        ? `<img src="${displayImgUrl}" class="w-16 h-16 object-cover rounded-lg bg-gray-200 border border-gray-100" loading="lazy" width="64" height="64" onerror="this.onerror=null;this.src='https://via.placeholder.com/64?text=No+Img';">`
+                        : `<div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>`;
+
+                    itemDiv.innerHTML = `
+                        ${imgHtml}
+                        <div class="flex-1 min-w-0">
+                            <h5 class="font-bold text-gray-800 truncate">${item.product_name}</h5>
+                            <div class="text-xs text-gray-500 mt-1 space-y-1">
+                                <p>ประเภท : ${item.product_type_name || '-'}</p>
+                                <p>ไอดีตัวละคร : ${item.customer_game_id || '-'}</p>
+                                <p>จำนวน : <span class="text-black font-medium">${item.quantity_done}/${item.quantity_total}</span></p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end justify-between shrink-0">
+                            <span class="text-xs px-2 py-1 rounded-full border ${statusClass} whitespace-nowrap">
+                                ${item.process_status}
+                            </span>
+                        </div>
+                    `;
+                    productList.appendChild(itemDiv);
+                });
+            } else {
+                productList.innerHTML = '<div class="text-center text-gray-400 text-sm">ไม่มีรายการสินค้า</div>';
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            document.body.style.overflow = '';
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        closeModalBtn.addEventListener('click', closeModal);
+
+        fetchData();
+    </script>
+</body>
+</html>
