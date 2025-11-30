@@ -25,117 +25,160 @@ document.addEventListener("DOMContentLoaded", function() {
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600&display=swap');
 
-        /* --- Basic Reset & Setup --- */
+        /* --- Basic Reset --- */
         body {
             margin: 0;
             font-family: 'Noto Sans Thai', sans-serif;
-            /* ปรับ Default ให้เผื่อที่ด้านบนสำหรับเมนู (ทั้งมือถือและ PC) */
-            padding-top: 80px; 
-            padding-bottom: 0;
-            transition: padding 0.3s ease;
+            background-color: #f8fafc;
+            padding-top: 60px; /* เว้นที่สำหรับปุ่มเมนูบนมือถือ */
+            transition: all 0.3s;
         }
 
-        /* --- Navbar Container --- */
-        .app-navbar {
+        /* --- Overlay (ฉากหลังมืดตอนเปิดเมนู) --- */
+        .menu-overlay {
             position: fixed;
-            top: 0; /* ย้ายไปอยู่ด้านบนเสมอ */
+            top: 0;
             left: 0;
-            z-index: 1000;
-            background: #ffffff;
-            width: 100%;
-            transition: all 0.3s ease;
-        }
-
-        .nav-container {
-            display: flex;
-            align-items: center;
             width: 100%;
             height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(2px);
+        }
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
         }
 
-        /* Logo */
-        .nav-logo {
-            display: none; 
-            font-weight: 700;
-            font-size: 1.5rem;
-            color: #2563eb;
-            text-decoration: none;
-            margin-right: auto;
-            align-items: center;
-            gap: 10px;
+        /* --- Navigation Container --- */
+        .app-navbar {
+            /* Desktop: เป็น Top Bar ปกติ */
+            /* Mobile: จะถูกแปลงเป็น Sidebar ด้วย CSS ด้านล่าง */
+            background: #ffffff;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .nav-links-wrapper {
-            display: flex;
-            width: 100%;
-            justify-content: space-around; 
-        }
-
-        /* --- Link Items Styles --- */
-        .nav-item {
-            display: flex;
-            flex-direction: column; 
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            color: #94a3b8;
-            transition: all 0.2s ease;
-            position: relative;
-            padding: 8px;
-            border-radius: 12px;
-            flex: 1; 
-        }
-
-        .nav-item i {
+        /* --- Hamburger Button (Mobile Only) --- */
+        .hamburger-btn {
+            display: none; /* ซ่อนใน PC */
+            position: fixed;
+            top: 15px;
+            left: 20px;
+            z-index: 1000;
+            background: #ffffff;
+            border: none;
+            color: #1e293b;
             font-size: 20px;
-            margin-bottom: 4px;
-            transition: transform 0.2s;
-        }
-
-        .nav-item span {
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        /* Active State */
-        .nav-item.active {
-            color: #2563eb;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: none; /* เอาเงาออกแล้ว */
+            transition: opacity 0.3s ease; /* เพิ่ม Transition เพื่อให้ซ่อนแบบนุ่มนวล */
         }
         
-        .nav-item.active i {
-            transform: translateY(-2px);
-        }
-
-        .nav-item:hover {
-            color: #2563eb;
-            background-color: rgba(37, 99, 235, 0.05);
+        /* เพิ่ม Class สำหรับซ่อนปุ่มเมนู */
+        .hamburger-btn.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         /* =========================================
-           MOBILE STYLE (< 768px)
-           - เมนูอยู่ด้านบน (แก้ไขแล้ว)
+           MOBILE STYLE (< 768px) -> SIDEBAR MODE
         ========================================= */
         @media (max-width: 767px) {
-            body {
-                 padding-top: 65px; /* เว้นที่ว่างด้านบนให้พอดีกับความสูงเมนู */
+            .hamburger-btn {
+                display: block; /* แสดงปุ่ม */
             }
 
             .app-navbar {
-                height: 65px;
-                /* เปลี่ยนเงาให้ลงด้านล่าง */
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                /* เปลี่ยนมุมโค้งเป็นด้านล่างแทน */
-                border-bottom-left-radius: 16px;
-                border-bottom-right-radius: 16px;
+                position: fixed;
+                top: 0;
+                left: -280px; /* ซ่อนไว้ทางซ้าย */
+                width: 260px;
+                height: 100%;
+                z-index: 999;
+                padding-top: 80px; /* เว้นที่ด้านบนไม่ให้ทับ Logo หรือปุ่มปิด */
+                box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            /* Class สำหรับเปิดเมนู */
+            .app-navbar.active {
+                left: 0;
+            }
+
+            .nav-container {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                padding: 0;
+            }
+
+            /* Logo ใน Sidebar */
+            .nav-logo {
+                position: absolute;
+                top: 20px;
+                left: 24px;
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: #2563eb;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .nav-links-wrapper {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                padding: 0 16px;
+                box-sizing: border-box;
+            }
+
+            .nav-item {
+                display: flex;
+                align-items: center;
+                justify-content: flex-start; /* ชิดซ้าย */
+                text-decoration: none;
+                color: #64748b;
+                padding: 14px 16px;
+                border-radius: 12px;
+                margin-bottom: 8px;
+                transition: all 0.2s;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .nav-item i {
+                font-size: 20px;
+                margin-right: 16px;
+                width: 24px;
+                text-align: center;
+            }
+
+            .nav-item span {
+                font-size: 16px;
+                font-weight: 500;
+            }
+
+            .nav-item.active {
+                background-color: #eff6ff;
+                color: #2563eb;
             }
             
-            .nav-container {
-                padding: 0 10px;
+            .nav-item:hover {
+                 background-color: #f1f5f9;
             }
         }
 
         /* =========================================
-           TABLET & DESKTOP STYLE (>= 768px)
+           TABLET & DESKTOP STYLE (>= 768px) -> TOP BAR
         ========================================= */
         @media (min-width: 768px) {
             body {
@@ -143,45 +186,61 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             .app-navbar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
                 height: 70px;
                 border-bottom: 1px solid #e2e8f0;
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
                 display: flex;
                 justify-content: center; 
-                border-radius: 0; 
             }
 
             .nav-container {
                 max-width: 1100px; 
+                width: 100%;
                 padding: 0 24px;
+                display: flex;
                 justify-content: space-between;
+                align-items: center;
             }
 
             .nav-logo {
                 display: flex; 
+                font-weight: 700;
+                font-size: 1.5rem;
+                color: #2563eb;
+                text-decoration: none;
+                align-items: center;
+                gap: 10px;
             }
 
             .nav-links-wrapper {
-                width: auto; 
+                display: flex;
                 gap: 16px;
                 justify-content: flex-end;
             }
 
             .nav-item {
+                display: flex;
                 flex-direction: row; 
-                gap: 8px;
-                flex: none; 
+                align-items: center;
+                text-decoration: none;
+                color: #64748b;
                 padding: 10px 20px;
-                height: auto;
+                border-radius: 12px;
+                transition: all 0.2s;
             }
 
             .nav-item i {
                 font-size: 18px;
-                margin-bottom: 0; 
+                margin-right: 8px;
             }
 
             .nav-item span {
                 font-size: 16px;
+                font-weight: 500;
             }
 
             .nav-item.active {
@@ -189,11 +248,29 @@ document.addEventListener("DOMContentLoaded", function() {
                 color: #2563eb;
                 font-weight: 600;
             }
+
+            .nav-item:hover {
+                color: #2563eb;
+                background-color: rgba(37, 99, 235, 0.05);
+            }
         }
     `;
     document.head.appendChild(style);
 
     // 4. สร้าง Elements
+    
+    // 4.1 Overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'menu-overlay';
+    document.body.appendChild(overlay);
+
+    // 4.2 Hamburger Button
+    const hamburger = document.createElement('button');
+    hamburger.className = 'hamburger-btn';
+    hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+    document.body.appendChild(hamburger);
+
+    // 4.3 Navbar (Sidebar Container)
     const navBar = document.createElement('nav');
     navBar.className = 'app-navbar';
 
@@ -219,6 +296,12 @@ document.addEventListener("DOMContentLoaded", function() {
             <i class="${item.icon}"></i>
             <span>${item.name}</span>
         `;
+        
+        // เมื่อคลิกลิงก์ในมือถือ ให้ปิดเมนูด้วย
+        link.addEventListener('click', () => {
+             toggleMenu(false);
+        });
+
         linksWrapper.appendChild(link);
     });
 
@@ -227,4 +310,24 @@ document.addEventListener("DOMContentLoaded", function() {
     navBar.appendChild(container);
 
     document.body.appendChild(navBar);
+
+    // 5. Function & Events สำหรับเปิด/ปิดเมนู
+    function toggleMenu(forceOpen) {
+        const isOpen = typeof forceOpen === 'boolean' ? forceOpen : !navBar.classList.contains('active');
+        
+        if (isOpen) {
+            navBar.classList.add('active');
+            overlay.classList.add('active');
+            hamburger.classList.add('hidden'); // ซ่อนปุ่มเมื่อเมนูเปิด
+            // hamburger.innerHTML = '<i class="fas fa-times"></i>'; // เอาออกตามคำขอ
+        } else {
+            navBar.classList.remove('active');
+            overlay.classList.remove('active');
+            hamburger.classList.remove('hidden'); // แสดงปุ่มเมื่อเมนูปิด
+            // hamburger.innerHTML = '<i class="fas fa-bars"></i>'; // เอาออกตามคำขอ
+        }
+    }
+
+    hamburger.addEventListener('click', () => toggleMenu());
+    overlay.addEventListener('click', () => toggleMenu(false));
 });
