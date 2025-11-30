@@ -1,10 +1,9 @@
 document.addEventListener("DOMContentLoaded", function() {
     // 1. ตรวจสอบชื่อไฟล์ปัจจุบันเพื่อระบุ Active State
-    // ใช้ try-catch หรือ fallback กรณี path แปลกๆ เพื่อความชัวร์
     const path = window.location.pathname;
-    const page = path.split("/").pop() || "index.html"; // ถ้าว่างให้เป็น index.html
+    const page = path.split("/").pop() || "index.html"; 
 
-    // 2. ข้อมูลเมนู (สามารถเพิ่มเมนูได้ที่นี่)
+    // 2. ข้อมูลเมนู
     const menuItems = [
         {
             name: "สินค้า",
@@ -20,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     ];
 
-    // 3. สร้าง CSS (ใช้ CSS Media Queries จัดการ Responsive แทน JS)
+    // 3. สร้าง CSS
     const style = document.createElement('style');
     style.innerHTML = `
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
@@ -30,18 +29,19 @@ document.addEventListener("DOMContentLoaded", function() {
         body {
             margin: 0;
             font-family: 'Noto Sans Thai', sans-serif;
-            /* Default สำหรับ Mobile (เผื่อที่ด้านล่างให้เมนู) */
-            padding-bottom: 80px; 
-            padding-top: 0;
+            /* ปรับ Default ให้เผื่อที่ด้านบนสำหรับเมนู (ทั้งมือถือและ PC) */
+            padding-top: 80px; 
+            padding-bottom: 0;
             transition: padding 0.3s ease;
         }
 
         /* --- Navbar Container --- */
         .app-navbar {
             position: fixed;
+            top: 0; /* ย้ายไปอยู่ด้านบนเสมอ */
+            left: 0;
             z-index: 1000;
             background: #ffffff;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
             width: 100%;
             transition: all 0.3s ease;
         }
@@ -53,9 +53,9 @@ document.addEventListener("DOMContentLoaded", function() {
             height: 100%;
         }
 
-        /* Logo (ซ่อนในมือถือ, แสดงในคอม) */
+        /* Logo */
         .nav-logo {
-            display: none; /* Mobile ซ่อน */
+            display: none; 
             font-weight: 700;
             font-size: 1.5rem;
             color: #2563eb;
@@ -68,13 +68,13 @@ document.addEventListener("DOMContentLoaded", function() {
         .nav-links-wrapper {
             display: flex;
             width: 100%;
-            justify-content: space-around; /* Mobile กระจายเต็ม */
+            justify-content: space-around; 
         }
 
         /* --- Link Items Styles --- */
         .nav-item {
             display: flex;
-            flex-direction: column; /* Mobile เรียงแนวตั้ง (Icon บน Text ล่าง) */
+            flex-direction: column; 
             align-items: center;
             justify-content: center;
             text-decoration: none;
@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function() {
             position: relative;
             padding: 8px;
             border-radius: 12px;
-            flex: 1; /* Mobile ให้ยืดเต็ม */
+            flex: 1; 
         }
 
         .nav-item i {
@@ -113,18 +113,20 @@ document.addEventListener("DOMContentLoaded", function() {
 
         /* =========================================
            MOBILE STYLE (< 768px)
-           - เมนูอยู่ด้านล่าง
-           - ไม่มี Logo
+           - เมนูอยู่ด้านบน (แก้ไขแล้ว)
         ========================================= */
         @media (max-width: 767px) {
+            body {
+                 padding-top: 65px; /* เว้นที่ว่างด้านบนให้พอดีกับความสูงเมนู */
+            }
+
             .app-navbar {
-                bottom: 0;
-                left: 0;
                 height: 65px;
-                border-top-left-radius: 16px;
-                border-top-right-radius: 16px;
-                /* รองรับ iPhone รุ่นใหม่ที่มีขีดล่าง */
-                padding-bottom: env(safe-area-inset-bottom); 
+                /* เปลี่ยนเงาให้ลงด้านล่าง */
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                /* เปลี่ยนมุมโค้งเป็นด้านล่างแทน */
+                border-bottom-left-radius: 16px;
+                border-bottom-right-radius: 16px;
             }
             
             .nav-container {
@@ -134,58 +136,48 @@ document.addEventListener("DOMContentLoaded", function() {
 
         /* =========================================
            TABLET & DESKTOP STYLE (>= 768px)
-           - เมนูอยู่ด้านบน
-           - มี Logo
-           - เรียงแนวนอน
         ========================================= */
         @media (min-width: 768px) {
-            /* ปรับ Body ให้มีที่ว่างด้านบนแทนด้านล่าง */
             body {
-                padding-bottom: 0;
                 padding-top: 80px; 
             }
 
             .app-navbar {
-                top: 0;
-                left: 0;
                 height: 70px;
                 border-bottom: 1px solid #e2e8f0;
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
                 display: flex;
-                justify-content: center; /* จัดกลาง Container */
-                border-radius: 0; /* ลบความโค้งมุมทิ้ง */
+                justify-content: center; 
+                border-radius: 0; 
             }
 
             .nav-container {
-                max-width: 1100px; /* จำกัดความกว้างเนื้อหา */
+                max-width: 1100px; 
                 padding: 0 24px;
                 justify-content: space-between;
             }
 
-            /* แสดง Logo */
             .nav-logo {
                 display: flex; 
             }
 
-            /* ปรับ Wrapper ของ Links */
             .nav-links-wrapper {
-                width: auto; /* ไม่ต้องเต็มจอ */
+                width: auto; 
                 gap: 16px;
                 justify-content: flex-end;
             }
 
-            /* ปรับสไตล์ปุ่มเมนูสำหรับ Desktop */
             .nav-item {
-                flex-direction: row; /* เรียงแนวนอน (Icon ซ้าย Text ขวา) */
+                flex-direction: row; 
                 gap: 8px;
-                flex: none; /* ไม่ต้องยืด */
+                flex: none; 
                 padding: 10px 20px;
                 height: auto;
             }
 
             .nav-item i {
                 font-size: 18px;
-                margin-bottom: 0; /* ลบ margin ล่างออก */
+                margin-bottom: 0; 
             }
 
             .nav-item span {
@@ -201,24 +193,23 @@ document.addEventListener("DOMContentLoaded", function() {
     `;
     document.head.appendChild(style);
 
-    // 4. สร้าง Elements (โครงสร้างเดียว ใช้ CSS ปรับรูปร่าง)
+    // 4. สร้าง Elements
     const navBar = document.createElement('nav');
     navBar.className = 'app-navbar';
 
     const container = document.createElement('div');
     container.className = 'nav-container';
 
-    // --- ส่วน Logo (จะแสดงแค่ใน Desktop ผ่าน CSS) ---
+    // Logo
     const logoLink = document.createElement('a');
     logoLink.href = 'index.html';
     logoLink.className = 'nav-logo';
     logoLink.innerHTML = '<i class="fas fa-gamepad"></i> <span>Black Hannah</span>';
 
-    // --- ส่วน Links Wrapper ---
+    // Links Wrapper
     const linksWrapper = document.createElement('div');
     linksWrapper.className = 'nav-links-wrapper';
 
-    // วนลูปสร้างเมนู
     menuItems.forEach(item => {
         const link = document.createElement('a');
         link.href = item.link;
@@ -231,10 +222,9 @@ document.addEventListener("DOMContentLoaded", function() {
         linksWrapper.appendChild(link);
     });
 
-    // ประกอบร่าง
-    container.appendChild(logoLink);      // ใส่ Logo
-    container.appendChild(linksWrapper);  // ใส่เมนู
-    navBar.appendChild(container);        // ใส่ Container เข้า Navbar
+    container.appendChild(logoLink);
+    container.appendChild(linksWrapper);
+    navBar.appendChild(container);
 
-    document.body.appendChild(navBar);    // ใส่ Navbar เข้า Body
+    document.body.appendChild(navBar);
 });
