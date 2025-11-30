@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบติดตามออเดอร์</title>
+    <title>Order</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- ใช้ฟอนต์ Noto Sans Thai -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -94,7 +94,8 @@
 
     <!-- Header -->
     <div class="max-w-7xl mx-auto px-4 pt-10 pb-4 text-center">
-        <h1 class="text-5xl font-bold text-gray-800 tracking-tight">
+        <!-- ปรับขนาดฟอนต์: มือถือ text-3xl, จอใหญ่ md:text-5xl -->
+        <h1 class="text-3xl md:text-5xl font-bold text-gray-800 tracking-tight">
             ออเดอร์
         </h1>
     </div>
@@ -445,8 +446,8 @@
             });
 
             // Count format can be simple integer
-            document.getElementById('total-orders').innerText = allOrders.length.toLocaleString();
-            document.getElementById('total-products').innerText = totalProducts.toLocaleString();
+            document.getElementById('total-orders').innerText = formatNumber(allOrders.length).split('.')[0];
+            document.getElementById('total-products').innerText = formatNumber(totalProducts).split('.')[0];
 
             if (pendingOrders.length === 0) {
                 pendingList.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่มีรายการค้าง</div>';
@@ -606,7 +607,6 @@
             
             payEl.className = `font-semibold ${order.payment_status === 'Paid' || order.payment_status === 'จ่ายแล้ว' ? 'theme-text-success' : 'theme-text-pending'}`;
             
-            // Format Price in Modal
             document.getElementById('m-price').innerText = (order.net_price ? formatNumber(order.net_price) : '0') + ' บาท';
 
             const productList = document.getElementById('m-product-list');
