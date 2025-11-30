@@ -33,6 +33,12 @@
             display: flex;
             justify-content: center;
         }
+
+        /* --- NEW: Lock Scroll Class --- */
+        body.no-scroll {
+            overflow: hidden;
+            height: 100vh;
+        }
         
         #app-container {
             width: 100%;
@@ -64,7 +70,7 @@
         
         #search-input {
             width: 100%;
-            padding: 8px 10px 8px 48px;
+            padding: 8px 10px 8px 48px; /* Left padding matches icon position */
             font-size: 1rem;
             border: none;
             border-radius: 50px;
@@ -91,12 +97,40 @@
             pointer-events: none;
         }
 
+        /* --- NEW: Clear Button Styles --- */
+        .search-clear-btn {
+            display: none; /* Hidden by default */
+            color: var(--subtle-text-color);
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 2px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        
+        /* Utility class to hide/show via JS */
+        .search-clear-btn.hidden {
+            display: none !important;
+        }
+        .search-clear-btn:not(.hidden) {
+            display: flex !important;
+        }
+
+        .search-clear-btn:hover {
+            background-color: #f1f3f4;
+            color: #202124;
+        }
+
         /* Checkbox inside Search Bar */
         .search-separator {
             width: 1px;
             height: 24px;
             background-color: #e0e0e0;
             margin: 0 8px;
+            flex-shrink: 0; /* Prevent separator from squishing */
         }
 
         .checkbox-label {
@@ -108,9 +142,10 @@
             color: var(--subtle-text-color);
             user-select: none;
             white-space: nowrap;
-            padding: 4px 12px 4px 8px; /* Adjusted padding since it's now at the end */
+            padding: 4px 12px 4px 8px;
             border-radius: 20px;
             margin-right: 4px;
+            flex-shrink: 0; /* Prevent label from shrinking too much */
         }
 
         .checkbox-label:hover {
@@ -173,24 +208,79 @@
             box-shadow: 0 2px 5px rgba(66, 133, 244, 0.3);
         }
 
-        /* Promo Banner */
+        /* Promo Banner - Redesigned: Simple & Rounded */
         .promo-banner {
-            background-color: #e8f0fe;
-            color: #1967d2;
-            padding: 10px 16px;
-            border-radius: 50px;
-            text-align: center;
-            font-size: 0.9rem;
-            border: 1px solid #d2e3fc;
+            background-color: #ffffff;
+            border: 1px solid #f1f3f4; /* Subtle border all around */
+            border-radius: 50px; /* Fully rounded/Pill shape */
+            padding: 10px 20px;
             display: flex;
-            justify-content: center;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 5px;
+            justify-content: center; /* Center the content */
+            gap: 12px;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); /* Very soft shadow */
+            width: fit-content; /* Allow it to shrink to content width */
+            margin-left: auto;
+            margin-right: auto; /* Center the banner itself */
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
+        .promo-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e8f0fe;
+            color: var(--primary-color);
+            padding: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            width: 32px; /* Fixed size */
+            height: 32px;
+        }
+        
+        .promo-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .promo-content {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+            color: var(--text-color);
+            text-align: left;
+        }
+
+        .promo-title {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-right: 4px;
+        }
+
         .promo-highlight {
             font-weight: 700;
+            color: #d93025;
+            /* Removed background color for a cleaner look, kept text color */
+            padding: 0 2px;
+        }
+
+        @media (max-width: 600px) {
+            .promo-banner {
+                padding: 10px 16px;
+                gap: 10px;
+                font-size: 0.85rem;
+                width: 100%; /* Full width on mobile */
+                justify-content: flex-start; /* Left align on mobile for better readability */
+            }
+            .promo-content {
+                display: block; /* Stack text on very small screens if needed */
+            }
+            .promo-title {
+                display: inline-block;
+            }
         }
 
         /* Product Grid */
@@ -202,21 +292,16 @@
             justify-content: center;
         }
         
-        /* REMOVED: @keyframes fadeInUp and related animation classes */
-
         .product-card {
             background-color: var(--card-background);
             border-radius: var(--border-radius);
             border: 1px solid #eeeeee;
             overflow: hidden;
-            /* REMOVED: transition property to remove effects */
             display: flex;
             flex-direction: column;
             position: relative;
         }
         
-        /* REMOVED: .product-card:not(.skeleton-card) animation block */
-
         .product-card.out-of-stock .product-image {
             filter: grayscale(100%);
             opacity: 0.6;
@@ -479,6 +564,11 @@
                 <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/><path d="M21,21a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,21Z"/></svg>
                 <input type="text" id="search-input" placeholder="ค้นหาชื่อสินค้า...">
                 
+                <!-- NEW: Clear Button -->
+                <div id="search-clear-btn" class="search-clear-btn hidden" title="ล้างคำค้นหา">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                </div>
+
                 <div class="search-separator"></div>
                 <label class="checkbox-label">
                     <input type="checkbox" id="hide-out-of-stock-checkbox" checked>
@@ -495,8 +585,20 @@
                 <button class="category-chip skeleton-shimmer" style="width: 60px; color: transparent; border: none;"></button>
             </div>
 
+            <!-- Redesigned Promo Banner -->
             <div class="promo-banner">
-                <span>📢 <strong>โปรโมชั่นพิเศษ :</strong> ซื้อครบ <span class="promo-highlight"> 100 บาท</span> ลดทันที <span class="promo-highlight">5 บาท</span></span>
+                <div class="promo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM13 20.01L4 11V4h7v-.01l9 9-7 7.02z"/>
+                        <circle cx="6.5" cy="6.5" r="1.5"/>
+                    </svg>
+                </div>
+                <div class="promo-content">
+                    <div>
+                        <span class="promo-title">โปรโมชั่นพิเศษ :</span>
+                        ซื้อครบ <span class="promo-highlight">100 บาท</span> ลดทันที <span class="promo-highlight">5 บาท</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -541,6 +643,7 @@
 
         const grid = document.getElementById('product-grid');
         const searchInput = document.getElementById('search-input');
+        const searchClearBtn = document.getElementById('search-clear-btn'); // New element reference
         const hideOutOfStockCheckbox = document.getElementById('hide-out-of-stock-checkbox');
         const loadMoreBtn = document.getElementById('load-more-btn');
         const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
@@ -621,6 +724,13 @@
         }
         
         function updateDisplay() {
+            // Check clear button visibility
+            if (searchInput.value.trim().length > 0) {
+                searchClearBtn.classList.remove('hidden');
+            } else {
+                searchClearBtn.classList.add('hidden');
+            }
+
             filterAndSortProducts();
             grid.innerHTML = '';
             renderProductBatch();
@@ -642,14 +752,10 @@
         }
         
         function renderProducts(productsToDisplay) {
-            // REMOVED: Animation index calculation
-            
             productsToDisplay.forEach((product, index) => {
                 const card = document.createElement('div');
                 card.className = 'product-card';
                 
-                // REMOVED: card.style.animationDelay setting
-
                 const isOutOfStock = Number(product.quantity) <= 0;
                 const displayQuantity = isOutOfStock ? 0 : Number(product.quantity);
 
@@ -731,6 +837,14 @@
             updateDisplay();
             
             searchInput.addEventListener('input', updateDisplay);
+            
+            // --- NEW: Clear Button Logic ---
+            searchClearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                searchInput.focus();
+                updateDisplay();
+            });
+
             hideOutOfStockCheckbox.addEventListener('change', updateDisplay);
             
             loadMoreBtn.addEventListener('click', () => {
@@ -817,11 +931,18 @@
                         tagEl.textContent = tag;
                         tagsPopupList.appendChild(tagEl);
                     });
+                    
+                    // Show Popup and Lock Body Scroll
                     tagsPopupOverlay.classList.add('show');
+                    document.body.classList.add('no-scroll');
                 }
             });
             tagsPopupOverlay.addEventListener('click', function(event) {
-                if (event.target === tagsPopupOverlay) tagsPopupOverlay.classList.remove('show');
+                if (event.target === tagsPopupOverlay) {
+                    // Hide Popup and Unlock Body Scroll
+                    tagsPopupOverlay.classList.remove('show');
+                    document.body.classList.remove('no-scroll');
+                }
             });
         }
         
