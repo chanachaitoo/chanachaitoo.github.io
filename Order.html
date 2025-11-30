@@ -5,46 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- ใช้ฟอนต์ Noto Sans Thai -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Preconnect to Image CDN -->
     <link rel="preconnect" href="https://wsrv.nl">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <style>
         /* ==========================================================================
            โซนตั้งค่าสี (THEME CONFIGURATION)
            ========================================================================== */
         :root {
-            /* 1. สีพื้นหลัง */
             --bg-body: #f3f4f6;
-
-            /* 2. สีหลัก (Primary) */
             --primary: #2563eb;       
             --primary-light: #60a5fa; 
             --primary-dark: #1e40af;  
-
-            /* 3. สีรอง (Secondary) */
             --secondary-start: #10b981; 
             --secondary-end: #34d399;   
-
-            /* 4. สีสถานะทั่วไป (General Status) */
             --status-pending: #f97316;   
             --status-success: #22c55e;   
-            
-            /* 5. สีเฉพาะของแต่ละสถานะ (Specific Process Colors) */
-            --proc-received: #6b7280; /* รับเข้า - เทา */
-            --proc-queue: #f97316;    /* รอคิว - ส้ม */
-            --proc-working: #2563eb;  /* เริ่มงาน - น้ำเงิน */
-            --proc-waiting: #9333ea;  /* รอส่ง - ม่วง */
-            --proc-done: #22c55e;     /* เรียบร้อยแล้ว - เขียว */
-
             --bg-card: #ffffff;
             --text-main: #374151;
             --text-sub: #6b7280;
+            
+            /* Add Search Bar Variables to match Product Page */
+            --subtle-text-color: #5f6368;
         }
 
-        /* นำตัวแปรสีมาใช้งาน */
         body { 
             font-family: 'Noto Sans Thai', sans-serif; 
             background-color: var(--bg-body);
@@ -63,20 +47,17 @@
 
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
         
-        /* ปรับแต่ง Scrollbar */
         .custom-scroll::-webkit-scrollbar { width: 8px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* Skeleton Loading Animation */
         .skeleton {
             background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 75%);
             background-size: 200% 100%;
             animation: skeleton-loading 1.5s infinite;
             border-radius: 0.5rem;
         }
-        /* Skeleton สำหรับพื้นหลังสีขาว (การ์ดรายการ) */
         .skeleton-dark {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
@@ -88,20 +69,85 @@
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+
+        /* --- IMPORTED SEARCH BAR STYLES (From Product Page) --- */
+        .search-container {
+            margin: 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            border-radius: 50px;
+            border: 2px solid #dfe1e5;
+            transition: box-shadow 0.2s;
+            background-color: #fff;
+            width: 100%;
+            padding: 4px;
+        }
+        
+        .search-container:hover, .search-container:focus-within {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+            border-color: rgba(223,225,229,0);
+        }
+        
+        #search-input {
+            width: 100%;
+            padding: 8px 10px 8px 48px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 50px;
+            box-sizing: border-box;
+            font-family: 'Noto Sans Thai', sans-serif;
+            background-color: transparent;
+            flex-grow: 1;
+            min-width: 0;
+            outline: none;
+        }
+        
+        #search-input:focus {
+            outline: none;
+            box-shadow: none; /* Override Tailwind */
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: var(--subtle-text-color);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        /* --- CONSISTENT MODAL STYLES --- */
+        #order-modal {
+            /* Use exact same blur settings as Product Page */
+            backdrop-filter: blur(5px);
+            background-color: rgba(0, 0, 0, 0.2);
+            /* High z-index to stay above menu (Menu is 9999) */
+            z-index: 10000;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Header -->
-    <div class="max-w-7xl mx-auto px-4 pt-10 pb-4 text-center">
-        <!-- ปรับขนาดฟอนต์: มือถือ text-3xl, จอใหญ่ md:text-5xl -->
-        <h1 class="text-3xl md:text-5xl font-bold text-gray-800 tracking-tight">
-            ออเดอร์
-        </h1>
+    <!-- Search Section (UPDATED DESIGN) -->
+    <div class="max-w-7xl mx-auto px-4 pt-4 pb-1">
+        <div class="max-w-2xl mx-auto mb-2">
+            <!-- New Structure matching Product Page -->
+            <div class="search-container">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/>
+                    <path d="M21,21a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,21Z"/>
+                </svg>
+                <input type="text" id="search-input" placeholder="ค้นหาไอดีออเดอร์ ลูกค้า ตัวละคร...">
+            </div>
+        </div>
     </div>
 
     <!-- Dashboard Summary -->
-    <div class="max-w-7xl mx-auto px-4 py-6">
+    <div class="max-w-7xl mx-auto px-4 py-2 mt-2">
         <div class="grid grid-cols-2 gap-6 mb-8">
             <div class="theme-bg-primary-gradient rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group">
                 <div class="relative z-10">
@@ -132,33 +178,44 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             <!-- Column 1: Pending Orders -->
-            <div class="bg-white rounded-3xl p-6 shadow-sm min-h-[500px]">
-                <h2 class="text-lg font-bold mb-4 flex items-center theme-text-pending">
-                    <span class="w-3 h-3 rounded-full theme-bg-pending mr-2"></span>
-                    กำลังดำเนินการ
-                </h2>
-                <div id="pending-list" class="space-y-4">
+            <div class="bg-white rounded-3xl p-6 shadow-sm min-h-[500px] flex flex-col relative">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold flex items-center theme-text-pending">
+                        <!-- Icon UPDATED: Simple Icon (Matching Card Style) -->
+                        <i class="fas fa-clock mr-2 text-xl"></i>
+                        กำลังดำเนินการ
+                    </h2>
+                    <!-- Badge Counter for Pending Orders -->
+                    <div id="pending-count-badge" class="hidden bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[24px] text-center shadow-sm">
+                        0
+                    </div>
+                </div>
+                <div id="pending-list" class="space-y-4 flex-1 flex flex-col">
                     <!-- Skeleton Loader -->
                 </div>
             </div>
 
             <!-- Column 2: Completed Orders -->
             <div class="bg-white rounded-3xl p-6 shadow-sm min-h-[500px] flex flex-col">
-                <h2 class="text-lg font-bold mb-4 flex items-center theme-text-success">
-                    <span class="w-3 h-3 rounded-full theme-bg-success mr-2"></span>
+                <h2 class="text-lg font-bold mb-4 flex items-center theme-text-success flex-none">
+                    <!-- Icon UPDATED: Simple Icon (Matching Card Style) -->
+                    <i class="fas fa-check-circle mr-2 text-xl"></i>
                     เรียบร้อยแล้ว
                 </h2>
-                <div id="completed-list" class="space-y-4 flex-grow">
+                <div id="completed-list" class="space-y-4 flex-1 flex flex-col">
                     <!-- Skeleton Loader -->
                 </div>
-                <!-- Pagination Controls -->
-                <div id="pagination-controls" class="hidden flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
-                    <button id="prev-btn" class="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                        <i class="fas fa-chevron-left mr-1"></i> ก่อนหน้า
+                
+                <!-- Pagination Controls (Circle Design with Arrows) -->
+                <div id="pagination-controls" class="hidden flex-none flex justify-center items-center mt-6 pt-4 gap-6">
+                    <button id="prev-btn" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-gray-50 disabled:hover:text-gray-400 transition-all duration-200 shadow-sm">
+                        <i class="fas fa-chevron-left"></i>
                     </button>
-                    <span class="text-sm text-gray-500" id="page-info">หน้า 1</span>
-                    <button id="next-btn" class="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                        ถัดไป <i class="fas fa-chevron-right ml-1"></i>
+                    
+                    <span class="text-gray-500 font-medium tracking-wide text-sm" id="page-info">1 / 1</span>
+                    
+                    <button id="next-btn" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-gray-50 disabled:hover:text-gray-400 transition-all duration-200 shadow-sm">
+                        <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
             </div>
@@ -166,7 +223,7 @@
     </div>
 
     <!-- Modal (Popup) -->
-    <div id="order-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div id="order-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
             
             <!-- Modal Header -->
@@ -222,6 +279,9 @@
         <span id="toast-message">แจ้งเตือน</span>
     </div>
 
+    <!-- LINK TO SHARED MENU SCRIPT -->
+    <script src="menu.js"></script>
+
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbwygcJWfjcLXn3IB7QV4fmD0xSMSqfICob-TfkkEDcZlawkq1Z1qWqvGGiMIjOxL7jv/exec'; 
 
@@ -236,7 +296,7 @@
             }
         };
 
-        // --- Mock Data with various statuses ---
+        // --- Mock Data ---
         const longItemsList = Array.from({length: 10}, (_, i) => {
              const statuses = ["รับเข้า", "รอคิว", "เริ่มงาน", "รอส่ง", "เรียบร้อยแล้ว"];
              const status = statuses[i % statuses.length];
@@ -301,9 +361,13 @@
         ];
 
         let allOrders = [];
+        let filteredOrdersList = []; 
         let completedOrdersList = []; 
         let currentPage = 1;
-        const itemsPerPage = 10;
+        const itemsPerPage = 5;
+
+        // Search Input
+        const searchInput = document.getElementById('search-input');
 
         function getGameInfo(gameId) {
             if (GAME_DATA[gameId]) {
@@ -326,7 +390,7 @@
             const completedList = document.getElementById('completed-list');
             
             const skeletonHTML = `
-                <div class="bg-white border border-gray-100 rounded-2xl p-4 mb-4">
+                <div class="bg-white border border-gray-100 rounded-2xl p-4 mb-4 flex-none">
                     <div class="flex justify-between mb-2">
                         <div class="h-4 w-24 skeleton-dark"></div>
                         <div class="h-3 w-3 rounded-full skeleton-dark"></div>
@@ -357,13 +421,32 @@
             }
         }
 
-        function processOrders() {
-            // Revert: แสดงข้อมูลทั้งหมด ไม่ว่าจะจำนวนเต็มหรือทศนิยม
-            allOrders.sort((a, b) => {
+        function processOrders(filterText = '') {
+            const searchText = filterText.toLowerCase().trim();
+            
+            if (!searchText) {
+                filteredOrdersList = [...allOrders];
+            } else {
+                filteredOrdersList = allOrders.filter(order => {
+                    const orderId = (order.order_id || '').toLowerCase();
+                    const customerId = (order.customer_account_id || '').toLowerCase();
+                    
+                    const hasCharacterId = order.items && order.items.some(item => 
+                        (item.customer_game_id || '').toLowerCase().includes(searchText)
+                    );
+
+                    return orderId.includes(searchText) || 
+                           customerId.includes(searchText) || 
+                           hasCharacterId;
+                });
+            }
+
+            filteredOrdersList.sort((a, b) => {
                 const numA = parseInt(a.order_id.replace(/\D/g, '')) || 0;
                 const numB = parseInt(b.order_id.replace(/\D/g, '')) || 0;
                 return numB - numA;
             });
+
             renderDashboard();
         }
 
@@ -378,17 +461,14 @@
             return `${day} ${month} ${year}`;
         }
 
-        // --- FORMAT: ปรับปรุงการแสดงผลราคาตามเงื่อนไขใหม่ ---
         function formatNumber(num) {
             const val = parseFloat(num);
-            // ถ้าเป็นจำนวนเต็ม (เช่น 25.00) ให้ตัดทศนิยมออก
             if (Number.isInteger(val)) {
                 return val.toLocaleString('th-TH', { 
                     minimumFractionDigits: 0, 
                     maximumFractionDigits: 0 
                 });
             }
-            // ถ้ามีทศนิยม (เช่น 137.50) ให้แสดง 2 ตำแหน่ง
             return val.toLocaleString('th-TH', { 
                 minimumFractionDigits: 2, 
                 maximumFractionDigits: 2 
@@ -423,6 +503,7 @@
         function renderDashboard() {
             const pendingList = document.getElementById('pending-list');
             const completedList = document.getElementById('completed-list');
+            const pendingCountBadge = document.getElementById('pending-count-badge');
             
             pendingList.innerHTML = '';
             completedList.innerHTML = '';
@@ -431,12 +512,20 @@
             let pendingOrders = [];
             completedOrdersList = []; 
 
-            if (allOrders.length === 0) {
-                pendingList.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่พบข้อมูล</div>';
-                completedList.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่พบข้อมูล</div>';
+            // Handle no results case
+            if (filteredOrdersList.length === 0) {
+                const emptyMsg = `
+                    <div class="h-full flex flex-col items-center justify-center text-gray-400">
+                        <i class="fas fa-search mb-2 text-2xl opacity-50"></i>
+                        <p>ไม่พบข้อมูลที่ค้นหา</p>
+                    </div>
+                `;
+                pendingList.innerHTML = emptyMsg;
+                completedList.innerHTML = emptyMsg;
+                pendingCountBadge.classList.add('hidden');
             }
 
-            allOrders.forEach(order => {
+            filteredOrdersList.forEach(order => {
                 totalProducts += order.items ? order.items.length : 0;
                 if (order.is_completed) {
                     completedOrdersList.push(order);
@@ -445,12 +534,25 @@
                 }
             });
 
-            // Count format can be simple integer
-            document.getElementById('total-orders').innerText = formatNumber(allOrders.length).split('.')[0];
+            // Update Header Counts
+            document.getElementById('total-orders').innerText = formatNumber(filteredOrdersList.length).split('.')[0];
             document.getElementById('total-products').innerText = formatNumber(totalProducts).split('.')[0];
 
-            if (pendingOrders.length === 0) {
-                pendingList.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่มีรายการค้าง</div>';
+            // Update Pending Badge
+            if (pendingOrders.length > 0) {
+                pendingCountBadge.innerText = pendingOrders.length;
+                pendingCountBadge.classList.remove('hidden');
+            } else {
+                pendingCountBadge.classList.add('hidden');
+            }
+
+            if (pendingOrders.length === 0 && filteredOrdersList.length > 0) {
+                pendingList.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-gray-400">
+                        <i class="fas fa-clipboard-check mb-2 text-2xl opacity-50"></i>
+                        <p>ไม่มีรายการที่กำลังดำเนินการ</p>
+                    </div>
+                `;
             } else {
                 pendingOrders.forEach(order => {
                     const card = createCard(order);
@@ -466,12 +568,18 @@
             completedList.innerHTML = '';
 
             if (completedOrdersList.length === 0) {
-                completedList.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่มีรายการที่สำเร็จแล้ว</div>';
+                if (filteredOrdersList.length > 0) {
+                     completedList.innerHTML = `
+                        <div class="h-full flex flex-col items-center justify-center text-gray-400">
+                            <i class="fas fa-history mb-2 text-2xl opacity-50"></i>
+                            <p>ไม่มีรายการที่สำเร็จแล้ว</p>
+                        </div>
+                     `;
+                }
                 togglePagination(false);
                 return;
             }
 
-            // Pagination: แสดงทีละ 10
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
             const pageItems = completedOrdersList.slice(startIndex, endIndex);
@@ -495,7 +603,8 @@
                 controls.classList.add('hidden');
             } else {
                 controls.classList.remove('hidden');
-                pageInfo.innerText = `หน้า ${currentPage} / ${totalPages}`;
+                // Updated format to match user request (1 / 93)
+                pageInfo.innerText = `${currentPage} / ${totalPages}`;
                 
                 prevBtn.disabled = currentPage === 1;
                 nextBtn.disabled = currentPage === totalPages;
@@ -510,13 +619,18 @@
 
         function createCard(order) {
             const card = document.createElement('div');
-            card.className = "bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer transition-all duration-200 group hover:shadow-md hover:border-blue-100";
+            // เพิ่ม flex-none เพื่อไม่ให้การ์ดถูกบีบ
+            card.className = "flex-none bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer transition-all duration-200 group hover:shadow-md hover:border-blue-100";
             card.addEventListener('click', () => openModal(order));
 
             const isPending = !order.is_completed;
-            const statusClass = isPending ? 'theme-bg-pending' : 'theme-bg-success';
+            const statusClass = isPending ? 'theme-text-pending' : 'theme-text-success';
             
-            // ใช้ formatNumber แบบใหม่
+            // Icon Logic: Pending = Clock, Completed = Check Circle
+            const statusIcon = isPending 
+                ? `<i class="fas fa-clock ${statusClass} text-lg"></i>` 
+                : `<i class="fas fa-check-circle ${statusClass} text-lg"></i>`;
+
             const priceDisplay = order.net_price ? formatNumber(order.net_price) : '0';
             const itemCount = order.items ? order.items.length : 0;
 
@@ -533,14 +647,16 @@
                             ${order.order_id}
                         </h3>
                     </div>
-                    <div class="${statusClass} w-2 h-2 rounded-full mt-2"></div>
+                    <!-- Icon Replaces Colored Dot -->
+                    <div class="mt-1">${statusIcon}</div>
                 </div>
                 <div class="flex items-center text-sm text-gray-500 gap-2 mt-2">
                     ${gameLogoHtml}
                     <span class="font-medium">${gameInfo.name}</span>
                 </div>
                 <div class="mt-3 flex justify-between items-end border-t border-gray-200 pt-2">
-                        <span class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">${itemCount} รายการ</span>
+                        <!-- Updated rounded-lg here -->
+                        <span class="text-xs bg-gray-200 px-2 py-1 rounded-lg text-gray-600">${itemCount} รายการ</span>
                         <span class="font-semibold text-gray-700">${priceDisplay} บาท</span>
                 </div>
             `;
@@ -560,6 +676,12 @@
                 currentPage++;
                 renderCompletedOrdersPage();
             }
+        });
+
+        // Event Listener สำหรับช่องค้นหา
+        searchInput.addEventListener('input', (e) => {
+            currentPage = 1; 
+            processOrders(e.target.value);
         });
 
         function getStatusStyle(status) {
@@ -621,7 +743,6 @@
 
                 sortedItems.forEach(item => {
                     const itemDiv = document.createElement('div');
-                    // เพิ่ม items-center เพื่อจัดรูปภาพให้อยู่กลางการ์ด
                     itemDiv.className = "flex gap-4 p-3 bg-white border border-gray-100 rounded-xl shadow-sm items-center";
                     
                     const statusClass = getStatusStyle(item.process_status);
