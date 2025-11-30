@@ -40,10 +40,9 @@
         }
 
         /* Wrapper for Search and Controls */
-        /* --- แก้ไข: ปรับระยะห่างด้านบน (margin-top) ให้สมดุล --- */
         .controls-wrapper {
             max-width: 800px;
-            margin: 20px auto 20px; /* แก้ไข: เปลี่ยนจาก 0 เป็น 20px เพื่อเพิ่มระยะห่างด้านบน */
+            margin: 20px auto 20px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -203,26 +202,20 @@
             justify-content: center;
         }
         
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* REMOVED: @keyframes fadeInUp and related animation classes */
 
         .product-card {
             background-color: var(--card-background);
             border-radius: var(--border-radius);
             border: 1px solid #eeeeee;
             overflow: hidden;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            /* REMOVED: transition property to remove effects */
             display: flex;
             flex-direction: column;
             position: relative;
         }
         
-        .product-card:not(.skeleton-card) {
-            opacity: 0; 
-            animation: fadeInUp 0.5s ease-out forwards;
-        }
+        /* REMOVED: .product-card:not(.skeleton-card) animation block */
 
         .product-card.out-of-stock .product-image {
             filter: grayscale(100%);
@@ -629,7 +622,6 @@
         
         function updateDisplay() {
             filterAndSortProducts();
-            // REMOVE: hasLoadedMore = false; // ปิดการใช้งานบรรทัดนี้ เพื่อให้สถานะการโหลดคงอยู่เมื่อเปลี่ยน filter/search
             grid.innerHTML = '';
             renderProductBatch();
         }
@@ -650,14 +642,13 @@
         }
         
         function renderProducts(productsToDisplay) {
-            const existingCardCount = grid.querySelectorAll('.product-card:not(.skeleton-card)').length;
+            // REMOVED: Animation index calculation
             
             productsToDisplay.forEach((product, index) => {
                 const card = document.createElement('div');
                 card.className = 'product-card';
                 
-                const animationIndex = (existingCardCount > 0) ? (existingCardCount + index) : index;
-                card.style.animationDelay = `${animationIndex * 0.05}s`; 
+                // REMOVED: card.style.animationDelay setting
 
                 const isOutOfStock = Number(product.quantity) <= 0;
                 const displayQuantity = isOutOfStock ? 0 : Number(product.quantity);
