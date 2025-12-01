@@ -791,16 +791,16 @@
                     else if (s === "เรียบร้อยแล้ว" || s === "Completed") statusStyle = "font-weight: bold; color: #15803d;"; 
 
                    itemsHtml += `
-                    <div style="display: flex; align-items: center; border-bottom: 1px solid #eee; padding: 0px 10px 10px 10px;">
-                        <div style="width: 50px; height: 50px; border-radius: 8px; margin-right: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    <div style="display: flex; align-items: center; border-bottom: 1px solid #eee; padding: 0px 10px 20px 10px;">
+                        <div style="width: 50px; height: 50px; border-radius: 8px; margin-right: 15px; margin-Top: 10px;">
                              ${item.image_link ? `<img src="${getDriveDirectLink(item.image_link)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous">` : '<span style="color:#ccc; font-size: 10px;">No Img</span>'}
                         </div>
-                        <div style="flex: 1;">
+                        <div style="flex: 1; ">
                             <div style="font-weight: bold; font-size: 14px; color: #000;">${item.product_name}</div>
                             <div style="font-size: 12px; color: #666;">ประเภท : ${item.product_type_name || '-'}</div>
                             <div style="font-size: 12px; color: #666;">ไอดี : ${item.customer_game_id || '-'}</div>
                         </div>
-                        <div style="text-align: right;">
+                        <div style="text-align: right; ">
                             <div style="font-size: 14px; font-weight: bold;">x${item.quantity_total}</div>
                             <span style="font-size: 10px; display: inline-block; margin-top: 4px; ${statusStyle}">${item.process_status}</span>
                         </div>
@@ -832,9 +832,9 @@
                 qrSectionHtml = `
                     <div style="margin-top: 20px; border-top: 2px dashed #eee; pt-4;">
 
-                        <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #333; text-align: center;">ช่องทางการชำระเงิน</div>
+                        <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px; margin-top: 10px; color: #333; text-align: center;">ช่องทางการชำระเงิน</div>
                         <div style="font-size: 12px; text-align: center;">ชนะชัย  ยอดรัก</div>
-                        <div style="font-size: 12px; margin-bottom: 20px;  text-align: center;">080-916-4365</div>
+                        <div style="font-size: 12px; margin-bottom: 30px;  text-align: center;">080-916-4365</div>
 
                         <div style="display: flex; justify-content: center; gap: 30px;">
                             <div style="text-align: center;">
@@ -881,7 +881,7 @@
                     </div>
                 </div>
 
-                <h3 style="font-size: 16px; font-weight: bold; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">รายการสินค้า</h3>
+                <h3 style="font-size: 16px; font-weight: bold; border-bottom: 2px solid #eee; padding-bottom: 10px;">รายการสินค้า</h3>
                 <div>${itemsHtml}</div>
 
                 <div style="margin-top: 20px; padding-top: 5px; border-top: 2px dashed #ddd;">
@@ -894,15 +894,13 @@
                         <span style="font-size: 14px; font-weight: bold; color: #ef4444; margin-bottom: 10px">${formatNumber(discount)} บาท</span>
                     </div>
                     
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid #eee;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee;">
                         <span style="font-size: 16px; font-weight: bold;">ยอดรวมสุทธิ</span>
                         <span style="font-size: 24px; font-weight: bold; color: #2563eb;">${formatNumber(currentOpenOrder.net_price)} บาท</span>
                     </div>
                 </div>
 
-                ${qrSectionHtml} <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #aaa;">
-                    ขอบคุณที่ใช้บริการ
-                </div>
+                ${qrSectionHtml} <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #aaa;">ขอบคุณที่ใช้บริการ</div>
             `;
 
             document.body.appendChild(billContainer);
