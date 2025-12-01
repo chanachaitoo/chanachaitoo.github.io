@@ -379,7 +379,8 @@
         .out-of-stock-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
-            z-index: 1; pointer-events: none;
+            z-index: 10; 
+            pointer-events: none;
         }
 
         .out-of-stock-text {
@@ -821,18 +822,18 @@
                 const outOfStockOverlayHtml = isOutOfStock ?
                     `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
 
-                card.innerHTML = `
-                    <div class="product-image-container skeleton-shimmer">
-                        ${outOfStockOverlayHtml}
-                        <img src="${optimizedImgUrl}" 
-                             class="product-image" 
-                             alt="${product.name}" 
-                             loading="lazy"
-                             decoding="async"
-                             onload="this.classList.add('loaded'); this.parentElement.classList.remove('skeleton-shimmer');"
-                             onerror="this.parentElement.classList.remove('skeleton-shimmer'); this.onerror=null;this.src='https://placehold.co/400x400/F1F3F4/5F6368?text=No+Image'; this.classList.add('loaded');">
-                    </div>
-                    <div class="product-info">
+                    card.innerHTML = `
+                        <div class="product-image-container skeleton-shimmer">
+                            <img src="${optimizedImgUrl}" 
+                                class="product-image" 
+                                alt="${product.name}" 
+                                loading="lazy"
+                                decoding="async"
+                                onload="this.classList.add('loaded'); this.parentElement.classList.remove('skeleton-shimmer');"
+                                onerror="this.parentElement.classList.remove('skeleton-shimmer'); this.onerror=null;this.src='https://placehold.co/400x400/F1F3F4/5F6368?text=No+Image'; this.classList.add('loaded');">
+                                
+                            ${outOfStockOverlayHtml}  </div>
+                        <div class="product-info">
                         <h2 class="product-name">${product.name}</h2>
                         <div class="price-and-tags-row">
                             <div class="product-price">฿${formattedPrice}</div>
