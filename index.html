@@ -48,7 +48,7 @@
         /* Wrapper for Search and Controls */
         .controls-wrapper {
             max-width: 800px;
-            margin: 20px auto 20px;
+            margin: 20px auto 10px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -165,7 +165,6 @@
             display: flex;
             overflow-x: auto;
             gap: 8px;
-            padding: 4px 2px 12px 2px; /* Bottom padding for scrollbar/shadow space */
             margin-bottom: 0px;
             -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
             scrollbar-width: none; /* Hide scrollbar Firefox */
@@ -354,6 +353,12 @@
             animation: shimmer 1.5s infinite linear;
         }
 
+        input.skeleton-shimmer {
+            border: none !important;
+            background-color: #e0e0e0 !important; /* บังคับใช้สีเทา */
+            color: transparent; /* ซ่อน Cursor */
+        }        
+
         .skeleton-card .product-image-container {
             background-color: #eee;
         }
@@ -374,7 +379,7 @@
         .out-of-stock-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
-            z-index: 10; pointer-events: none;
+            z-index: 1; pointer-events: none;
         }
 
         .out-of-stock-text {
@@ -465,9 +470,32 @@
         }
 
         #message-container {
-            text-align: center; font-size: 1.2rem; padding: 60px 20px;
-            color: var(--subtle-text-color); font-weight: 500;
-            grid-column: 1 / -1;
+            grid-column: 1 / -1; /* ให้กินพื้นที่เต็มความกว้าง grid */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            color: #dadce0; /* สีเทาจางๆ สบายตา */
+        }
+
+        .empty-state-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 8px;
+        }
+
+        .empty-state-subtitle {
+            font-size: 0.9rem;
+            color: var(--subtle-text-color);
         }
         
         @media (max-width: 600px) {
@@ -562,7 +590,7 @@
             <!-- Search Bar -->
             <div class="search-container">
                 <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/><path d="M21,21a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,21Z"/></svg>
-                <input type="text" id="search-input" placeholder="ค้นหาชื่อสินค้า...">
+                <input type="text" id="search-input" class="skeleton-shimmer" disabled>
                 
                 <!-- NEW: Clear Button -->
                 <div id="search-clear-btn" class="search-clear-btn hidden" title="ล้างคำค้นหา">
@@ -743,10 +771,20 @@
                 : filteredAndSortedProducts.slice(0, currentItemsPerPage);
             
             if (grid.innerHTML === '' && productsToDisplay.length === 0) {
-                grid.innerHTML = '<div id="message-container">ไม่พบสินค้าที่ค้นหา</div>';
+                // ใส่ HTML ใหม่ที่มีไอคอนแว่นขยายสวยๆ
+                grid.innerHTML = `
+                    <div id="message-container">
+                        <svg class="empty-state-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <div class="empty-state-title">ไม่พบสินค้าที่ค้นหา</div>
+                        <div class="empty-state-subtitle">ลองใช้คำค้นหาอื่น หรือเลือกดูหมวดหมู่ทั้งหมด</div>
+                    </div>
+                `;
                 loadMoreBtn.style.display = 'none';
                 return;
             }
+            
             renderProducts(productsToDisplay);
             updateLoadMoreButton();
         }
@@ -823,6 +861,11 @@
         }
 
         function onDataLoaded(data) {
+
+            searchInput.classList.remove('skeleton-shimmer');
+            searchInput.disabled = false;
+            searchInput.placeholder = "ค้นหาชื่อสินค้า...";
+
             if (data.error) {
                 grid.innerHTML = `<div id="message-container">เกิดข้อผิดพลาด: ${data.error}</div>`;
                 return;
