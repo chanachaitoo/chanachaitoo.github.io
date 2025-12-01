@@ -302,12 +302,30 @@
         }
 
         function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-message').innerText = message;
-            toast.classList.remove('translate-y-20');
+            // เช็คว่าเป็น Error หรือ Success เพื่อเปลี่ยนสี
+            const isError = message.includes('ผิดพลาด') || message.includes('ไม่') || message.includes('ล้มเหลว');
+            const colorClass = isError ? 'border-l-4 border-red-500 text-red-700' : 'border-l-4 border-green-500 text-green-700';
+            const icon = isError ? '<i class="fa-solid fa-circle-exclamation mr-2"></i>' : '<i class="fa-solid fa-circle-check mr-2"></i>';
+
+            const toast = document.createElement('div');
+            // ใช้ Tailwind จัดสไตล์: พื้นขาว, เงา, มุมขวาบน, สไลด์เข้ามา
+            toast.className = `fixed top-5 right-5 bg-white px-6 py-4 rounded shadow-2xl z-[9999] flex items-center transition-all duration-300 transform translate-x-full ${colorClass}`;
+            toast.innerHTML = `${icon} <span class="font-semibold">${message}</span>`;
+            
+            document.body.appendChild(toast);
+
+            // Animation: เลื่อนเข้ามา
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-full');
+            });
+
             setTimeout(() => {
-                toast.classList.add('translate-y-20');
-            }, 5000);
+                // Animation: เลื่อนออก
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
         }
 
         function renderSkeletonLoader() {
