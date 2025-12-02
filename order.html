@@ -47,6 +47,11 @@
             background-color: var(--bg-body);
             color: var(--text-main);
         }
+
+        body.no-scroll {
+            overflow: hidden; /* ห้ามเลื่อน */
+            height: 100vh;    /* ล็อคความสูงให้เท่าหน้าจอ */
+        }
         
         .theme-text-primary { color: var(--primary); }
         .theme-bg-primary-gradient { background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); }
@@ -113,7 +118,7 @@
                 <!-- Adjusted padding-right (pr-12) to make space for the X button -->
                 <!-- Removed focus:ring-2 focus:ring-[var(--primary-light)] focus:border-transparent to remove focus effect -->
                 <input type="text" id="search-input" disabled
-                    class="block w-full pl-11 pr-12 py-4 border border-gray-200 rounded-full leading-5 skeleton-input placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-gray-200 transition-none shadow-sm text-gray-700"
+                    class="block w-full pl-11 pr-12 py-3.5 border border-gray-200 rounded-full leading-5 skeleton-input placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-gray-200 transition-none shadow-sm text-gray-700"
                     placeholder="ค้นหาไอดีออเดอร์ ลูกค้า ตัวละคร...">
                 
                 <!-- Clear Button (Hidden by default) -->
@@ -261,14 +266,6 @@
 
     <!-- Container สำหรับแคปภาพ (ซ่อนอยู่) -->
     <div id="capture-container" style="position: absolute; top: -9999px; left: -9999px; width: 500px; background: #fff;"></div>
-
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 transition-transform duration-300 flex items-center gap-2 z-50">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-        </svg>
-        <span id="toast-message">แจ้งเตือน</span>
-    </div>
 
     <!-- LINK TO SHARED MENU SCRIPT -->
     <script src="menu.js"></script>
@@ -764,6 +761,8 @@
             }
 
             modal.classList.remove('hidden');
+
+            document.body.classList.add('no-scroll');
             
             const modalBody = document.getElementById('modal-body');
             if (modalBody) modalBody.scrollTop = 0;
@@ -782,6 +781,8 @@
             modalContent.classList.add('scale-95');
             setTimeout(() => {
                 modal.classList.add('hidden');
+                document.body.classList.remove('no-scroll');
+                currentOpenOrder = null;
             }, 300);
         }
 
