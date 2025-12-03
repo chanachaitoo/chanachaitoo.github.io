@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order</title>
-    <link rel="icon" type="image/png" href="Black_Hannah.png">
     
     <script>
         (function() {
@@ -18,10 +16,10 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://wsrv.nl">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
     <style>
         :root {
             --bg-body: #f3f4f6;
@@ -103,6 +101,7 @@
         }       
 
     </style>
+    
 </head>
 <body>
 
@@ -762,7 +761,7 @@
 
             modal.classList.remove('hidden');
 
-            document.body.classList.add('no-scroll');
+            // document.body.classList.add('no-scroll');
             
             const modalBody = document.getElementById('modal-body');
             if (modalBody) modalBody.scrollTop = 0;
