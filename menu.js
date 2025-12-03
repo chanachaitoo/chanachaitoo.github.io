@@ -1,9 +1,23 @@
 document.addEventListener("DOMContentLoaded", function() {
-    // 1. ตรวจสอบชื่อไฟล์ปัจจุบันเพื่อระบุ Active State
+
+    // ตรวจสอบชื่อไฟล์ปัจจุบันเพื่อระบุ Active State
     const path = window.location.pathname;
     const page = path.split("/").pop() || "index.html"; 
 
-    // 2. ข้อมูลเมนู
+    // ตั้งค่า Title (ชื่อแท็บ Browser)
+    document.title = "Black Hannah";
+
+    // ตั้งค่า Favicon (รูปไอคอน)
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+    }
+    link.type = 'image/png';
+    link.href = 'Black_Hannah.png';
+
+    // ข้อมูลเมนู
     const menuItems = [
         {
             name: "สินค้า",
@@ -331,4 +345,5 @@ document.addEventListener("DOMContentLoaded", function() {
 
     hamburger.addEventListener('click', () => toggleMenu());
     overlay.addEventListener('click', () => toggleMenu(false));
+    
 });
