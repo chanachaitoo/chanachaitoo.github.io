@@ -764,7 +764,7 @@ input.skeleton-shimmer { border: none !important; background-color: var(--skelet
     
     #product-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
     
-    .popup-content { max-width: 100%; margin-right: 30px; padding: 20px 20px; }
+    .popup-content { max-width: 100%; padding: 20px 20px; }
     #message-container { font-size: 0.9rem; }
     
     /* Search Bar Mobile */
@@ -817,4 +817,5 @@ input.skeleton-shimmer { border: none !important; background-color: var(--skelet
     }
 
     .content-grid { grid-template-columns: 1fr 1fr; }
+
 }
