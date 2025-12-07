@@ -12,8 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     
     <link rel="stylesheet" href="style.css">
-    
-    <!-- หมายเหตุ: นำ Firebase SDK และ Config ออกแล้ว เนื่องจากเปลี่ยนไปใช้ API -->
 </head>
 <body>
     <div id="app-container">
@@ -23,18 +21,23 @@
 
         <div id="view-home">
             <div class="controls-wrapper">
-                <!-- Search Box (Updated IDs with 'home-') -->
+                <!-- Search Box (Updated Structure for Mobile Layout) -->
                 <div id="home-search-container-box" class="search-container skeleton-shimmer">
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/><path d="M21,21a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,21Z"/></svg>
                     
-                    <input type="text" id="home-search-input" disabled placeholder="ค้นหาชื่อสินค้า (คั่นด้วย , เพื่อหาหลายคำ)">
-                    
-                    <div id="home-search-clear-btn" class="search-clear-btn hidden" title="ล้างคำค้นหา">
-                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                    <!-- ส่วน Input ค้นหา (ใส่ Wrapper เพื่อแยกกับ Checkbox บนมือถือ) -->
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/><path d="M21,21a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,21Z"/></svg>
+                        
+                        <input type="text" id="home-search-input" disabled placeholder="ค้นหาชื่อสินค้า (คั่นด้วย , เพื่อหาหลายคำ)">
+                        
+                        <div id="home-search-clear-btn" class="search-clear-btn hidden" title="ล้างคำค้นหา">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                        </div>
                     </div>
 
                     <div class="search-separator"></div>
                     
+                    <!-- Checkbox -->
                     <label id="stock-checkbox-label" class="checkbox-label">
                         <input type="checkbox" id="hide-out-of-stock-checkbox" checked>
                         <span>ซ่อนสินค้าที่หมด</span>
@@ -69,13 +72,6 @@
             <!-- Product Grid -->
             <div id="product-grid"></div>
 
-            <!-- View More Button Container (New) -->
-            <div id="load-more-container" class="load-more-container hidden">
-                <button id="load-more-btn" class="load-more-btn">
-                    ดูเพิ่มเติม <i class="fas fa-chevron-down" style="margin-left: 5px;"></i>
-                </button>
-            </div>
-
             <!-- Tags Popup (Shared or Home specific) -->
             <div id="tags-popup-overlay" class="popup-overlay">
                 <div id="tags-popup-content" class="popup-content">
@@ -94,17 +90,20 @@
             <div class="controls-wrapper">
                 <!-- Search Box (Updated IDs with 'order-') -->
                 <div id="order-search-container-box" class="search-container skeleton-shimmer">
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/>
-                        <path d="M21,21a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,21Z"/>
-                    </svg>
-                    
-                    <input type="text" id="order-search-input" disabled placeholder="ค้นหาไอดีออเดอร์, ไอดีบัญชีลูกค้า">
-                    
-                    <div id="order-clear-search-btn" class="search-clear-btn hidden" title="ล้างคำค้นหา">
-                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
-                            <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+                    <!-- Input Group -->
+                     <div class="search-input-wrapper">
+                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/>
+                            <path d="M21,21a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,21Z"/>
                         </svg>
+                        
+                        <input type="text" id="order-search-input" disabled placeholder="ค้นหาไอดีออเดอร์, ไอดีบัญชีลูกค้า">
+                        
+                        <div id="order-clear-search-btn" class="search-clear-btn hidden" title="ล้างคำค้นหา">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -4,16 +4,17 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
 (function() {
     // ตัวแปรหลัก
     let allProducts = [];
-    let allGameTags = []; // สร้างจากสินค้าโดยตรง
-    let gameTagsMap = {}; // Map: customId -> tagName
-    let activeTagIds = new Set(); // เก็บ ID ของ tag ที่มีสินค้าใช้อยู่จริง
+    let allGameTags = []; 
+    let gameTagsMap = {}; 
+    let activeTagIds = new Set(); 
     let filteredAndSortedProducts = [];
     let currentFilter = 'all';
     let isDraggingCategory = false;
     
-    // Pagination / "Show More" variables
-    let currentLimit = 0; // จำนวนสินค้าที่แสดงอยู่ในปัจจุบัน
-
+    // ตัวแปรสำหรับ Auto Update
+    let updateInterval = null;
+    const UPDATE_DELAY_MS = 10000; // อัพเดททุก 10 วินาที
+    
     // DOM Elements
     const grid = document.getElementById('product-grid');
     const searchInput = document.getElementById('home-search-input');
@@ -23,10 +24,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
     const categoryFilterContainer = document.getElementById('category-filter-container');
     const searchContainerBox = document.getElementById('home-search-container-box');
     
-    // Elements for "View More"
-    const loadMoreContainer = document.getElementById('load-more-container');
-    const loadMoreBtn = document.getElementById('load-more-btn');
-
     // --- Helper Functions ---
 
     function formatQuantityToK(quantity) {
@@ -38,7 +35,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
 
     function getOptimizedImageUrl(url) {
         if (!url) return 'https://placehold.co/400x400/F1F3F4/5F6368?text=No+Image';
-        // Check if it's a Google Drive link
         if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
             let id = '';
             const parts = url.split('/');
@@ -85,18 +81,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
 
     // --- Core Logic ---
 
-    function getGridColumnCount() {
-        if (!grid) return 2; 
-        const gridStyle = window.getComputedStyle(grid);
-        const gridTemplate = gridStyle.getPropertyValue('grid-template-columns');
-        return gridTemplate.split(' ').length || 1;
-    }
-
-    function calculateTwoRowsLimit() {
-        const columnCount = getGridColumnCount();
-        return columnCount * 2; 
-    }
-
     function filterAndSortProducts() {
         if(!searchInput) return;
         
@@ -117,28 +101,23 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
                 if (!match) return false;
             }
 
-            // 3. กรองตามหมวดหมู่ (Tags)
+            // 3. กรองตามหมวดหมู่
             if (selectedCategoryCustomId !== 'all') {
                 const productTags = parseTags(product.tags);
-                // ในกรณีนี้ customId คือชื่อ tag เลยเพราะเราเจนมาเอง
                 const categoryName = selectedCategoryCustomId; 
-                
                 if (!productTags.includes(categoryName)) {
                     return false;
                 }
             }
-
             return true;
         });
 
-        // เรียงลำดับตามราคา (น้อยไปมาก)
         filteredAndSortedProducts = result.sort((a, b) => Number(a.price) - Number(b.price));
     }
 
-    function updateDisplay(resetLimit = true) {
+    function updateDisplay() {
         if (!searchInput) return;
 
-        // Show/Hide Clear Button
         if (searchInput.value.trim().length > 0) {
             if(searchClearBtn) searchClearBtn.classList.remove('hidden');
         } else {
@@ -159,34 +138,20 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
                     <div class="empty-state-subtitle">ลองค้นหาด้วยคำอื่น หรือเปลี่ยนหมวดหมู่</div>
                 </div>
             `;
-            if(loadMoreContainer) loadMoreContainer.classList.add('hidden');
             return;
         }
 
-        if (resetLimit) {
-            currentLimit = calculateTwoRowsLimit();
-        }
-
-        const displayProducts = filteredAndSortedProducts.slice(0, currentLimit);
-        
+        const displayProducts = filteredAndSortedProducts;
         grid.innerHTML = '';
         renderProducts(displayProducts);
-
-        if (loadMoreContainer) {
-            if (filteredAndSortedProducts.length <= currentLimit) {
-                loadMoreContainer.classList.add('hidden');
-            } else {
-                loadMoreContainer.classList.remove('hidden');
-                const remaining = filteredAndSortedProducts.length - currentLimit;
-                loadMoreBtn.innerHTML = `ดูเพิ่มเติม (${remaining}) <i class="fas fa-chevron-down" style="margin-left: 5px;"></i>`;
-            }
-        }
     }
 
     function renderProducts(products) {
         products.forEach((product) => {
             const card = document.createElement('div');
             card.className = 'product-card';
+            // เพิ่ม ID ให้กับการ์ดเพื่อให้อัพเดทเฉพาะจุดได้
+            card.dataset.productId = product.customId; 
             
             const isOutOfStock = Number(product.quantity) <= 0;
             if (isOutOfStock) card.classList.add('out-of-stock');
@@ -239,6 +204,61 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
         });
     }
 
+    // --- Real-time Update Logic ---
+
+    function startAutoUpdate() {
+        if (updateInterval) clearInterval(updateInterval);
+        // เรียก loadData แบบ Background Update ทุกๆ 10 วินาที
+        updateInterval = setInterval(() => {
+            loadData(true);
+        }, UPDATE_DELAY_MS);
+    }
+
+    // ฟังก์ชันสำหรับอัพเดทเฉพาะตัวเลขบนหน้าจอ (ไม่รีเฟรชทั้ง Grid)
+    function updateVisibleStocks() {
+        allProducts.forEach(product => {
+            // หาการ์ดที่มี ID ตรงกันในหน้าจอ
+            const card = document.querySelector(`.product-card[data-product-id="${product.customId}"]`);
+            
+            if (card) {
+                const newQty = Number(product.quantity);
+                const isOutOfStock = newQty <= 0;
+                
+                // 1. อัพเดทสถานะสินค้าหมด (Class & Overlay)
+                const imgContainer = card.querySelector('.product-image-container');
+                const existingOverlay = card.querySelector('.out-of-stock-overlay');
+
+                if (isOutOfStock) {
+                    card.classList.add('out-of-stock');
+                    if (!existingOverlay && imgContainer) {
+                        const overlay = document.createElement('div');
+                        overlay.className = 'out-of-stock-overlay';
+                        overlay.innerHTML = '<div class="out-of-stock-text">สินค้าหมด</div>';
+                        imgContainer.appendChild(overlay);
+                    }
+                } else {
+                    card.classList.remove('out-of-stock');
+                    if (existingOverlay) existingOverlay.remove();
+                }
+
+                // 2. อัพเดทตัวเลขจำนวน
+                const qtyFullEl = card.querySelector('.quantity-full');
+                const qtyKEl = card.querySelector('.quantity-k');
+                const displayQty = isOutOfStock ? 0 : newQty;
+
+                if (qtyFullEl) qtyFullEl.innerText = displayQty.toLocaleString('th-TH');
+                if (qtyKEl) qtyKEl.innerText = formatQuantityToK(displayQty);
+            }
+        });
+        
+        // ถ้ามีการติ๊ก "ซ่อนสินค้าหมด" ไว้ ให้เรียก filter ใหม่เพื่อให้สินค้าที่เพิ่งหมดหายไป
+        if (hideOutOfStockCheckbox && hideOutOfStockCheckbox.checked) {
+            // เช็คว่ามีสินค้าที่เพิ่งหมดแล้วต้องซ่อนหรือไม่ ถ้ามีค่อยรีเฟรช Grid
+            // แต่เพื่อ UX ที่ดี การรีเฟรช Grid เงียบๆ อาจจะดีกว่า
+            // filterAndSortProducts(); // เรียกสิ่งนี้อาจทำให้ลำดับกระตุกถ้าไม่จำเป็น
+        }
+    }
+
     function parseTags(tagsString) {
         if (!tagsString) return [];
         if (Array.isArray(tagsString)) return tagsString;
@@ -252,7 +272,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
             ids.forEach(id => activeTagIds.add(id));
         });
         
-        // สร้าง allGameTags จากสินค้าที่โหลดมาโดยตรง
         allGameTags = Array.from(activeTagIds).map(tag => ({
             customId: tag,
             tagName: tag
@@ -293,21 +312,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
         btnElement.classList.add('active');
 
         currentFilter = btnElement.dataset.value;
-        updateDisplay(true); // Reset limit when category changes
-    }
-
-    function setupLoadMoreButton() {
-        if (loadMoreBtn) {
-            // ลบ Event Listener เก่า (ถ้ามี) เพื่อป้องกันการกดเบิ้ล
-            const newBtn = loadMoreBtn.cloneNode(true);
-            loadMoreBtn.parentNode.replaceChild(newBtn, loadMoreBtn);
-            
-            newBtn.addEventListener('click', () => {
-                const addedRowsLimit = calculateTwoRowsLimit();
-                currentLimit += addedRowsLimit;
-                updateDisplay(false); 
-            });
-        }
+        updateDisplay(); 
     }
 
     function onInitialDataLoaded() {
@@ -317,39 +322,38 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
             searchInput.placeholder = "ค้นหาชื่อสินค้า (คั่นด้วย , เพื่อหาหลายคำ)";
         
             if (!searchInput.dataset.ready) {
-                searchInput.addEventListener('input', () => updateDisplay(true)); 
+                searchInput.addEventListener('input', () => updateDisplay()); 
                 if(searchClearBtn) {
                     searchClearBtn.addEventListener('click', () => {
                         searchInput.value = '';
                         searchInput.focus();
-                        updateDisplay(true);
+                        updateDisplay();
                     });
                 }
-                if(hideOutOfStockCheckbox) hideOutOfStockCheckbox.addEventListener('change', () => updateDisplay(true));
+                if(hideOutOfStockCheckbox) hideOutOfStockCheckbox.addEventListener('change', () => updateDisplay());
                 setupTagsPopup();
                 setupScrollToTopButton();
                 setupCategoryScrolling();
                 
-                window.addEventListener('resize', () => {
-                    // Resize logic if needed
-                });
+                window.addEventListener('resize', () => {});
 
                 searchInput.dataset.ready = "true";
             }
         }
-        // Setup load more btn every time data is ready
-        setupLoadMoreButton();
-        updateDisplay(true);
+        updateDisplay();
+        
+        // เริ่มระบบ Auto Update หลังจากโหลดครั้งแรกเสร็จ
+        startAutoUpdate();
     }
 
-    async function loadData() {
-        renderSkeletonLoading();
+    // เพิ่ม Parameter isBackgroundUpdate เพื่อแยกว่าเป็นการโหลดครั้งแรก หรือโหลดเพื่ออัพเดท
+    async function loadData(isBackgroundUpdate = false) {
+        if (!isBackgroundUpdate) renderSkeletonLoading();
 
         try {
             const response = await fetch(API_URL);
             const data = await response.json();
             
-            // รองรับทั้งแบบ array ตรงๆ และแบบ { data: [...] }
             let items = [];
             if (Array.isArray(data)) {
                 items = data;
@@ -357,28 +361,38 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
                 items = data.data;
             }
 
-            allProducts = items.map((d, index) => {
-                // Map API fields to internal structure
+            // แปลงข้อมูลใหม่
+            const newProducts = items.map((d, index) => {
                 return {
                     id: d.id || `prod_${index}`,
                     customId: d.customId || d.id || `prod_${index}`,
                     name: d.name || d.productName || 'ไม่มีชื่อ',
                     price: d.price || 0,
                     quantity: d.stock || d.quantity || 0,
-                    // แก้ไข: เพิ่ม d.imageUrl (จาก GAS) เข้าไปในเงื่อนไขการดึงรูป
                     imageUrl: d.imageUrl || d.imgUrl || d.img || d.image || '',
                     tags: d.tags || '', 
                     unit: d.unit || 'ชิ้น',
                     type: d.type || 'ไอเทม'
                 };
-            }).filter(p => p.type === 'ไอเทม'); // กรองเอาเฉพาะสินค้า
+            }).filter(p => p.type === 'ไอเทม');
 
-            calculateActiveTags();
-            onInitialDataLoaded();
+            // อัพเดทข้อมูลในตัวแปรหลัก
+            allProducts = newProducts;
+
+            if (!isBackgroundUpdate) {
+                // ถ้าเป็นการโหลดครั้งแรก ให้ทำกระบวนการปกติ
+                calculateActiveTags();
+                onInitialDataLoaded();
+            } else {
+                // ถ้าเป็นการอัพเดทเบื้องหลัง ให้เรียกฟังก์ชันอัพเดทเฉพาะจุด
+                updateVisibleStocks();
+            }
 
         } catch (error) {
             console.error("Error loading products:", error);
-            if(grid) grid.innerHTML = `<div id="message-container">โหลดข้อมูลไม่สำเร็จ: ${error.message}</div>`;
+            if (!isBackgroundUpdate && grid) {
+                grid.innerHTML = `<div id="message-container">โหลดข้อมูลไม่สำเร็จ: ${error.message}</div>`;
+            }
         }
     }
 

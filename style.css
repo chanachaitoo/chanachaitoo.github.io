@@ -38,7 +38,6 @@ html {
     --status-gray-bg: #f3f4f6;    --status-gray-text: #6b7280;
 
     /* --- Status controls-wrapper --- */
-    /* REVERTED: กลับมาใช้ 800px ตามเดิม */
     --max-width-controls-wrapper: 800px;
     --display-width-controls-wrapper: flex;
     --flex-direction-width-controls-wrapper: column;
@@ -95,6 +94,7 @@ body {
     width: 100%; /* Ensure full width if parent allows */
 }
 
+/* Search Container: The outer wrapper */
 .search-container {
     margin: 0;
     position: relative;
@@ -114,6 +114,7 @@ body {
     border-color: rgba(223,225,229,0);
 }
 
+/* Skeleton Loading on Search Container */
 .search-container.skeleton-shimmer {
     border-color: transparent;
     overflow: hidden;
@@ -125,7 +126,16 @@ body {
     visibility: hidden;
 }
 
-/* Updated to target inputs generally within search-container or specifically by new IDs if needed */
+/* New Wrapper for Input Elements */
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    width: 100%;
+    position: relative;
+}
+
+/* Updated to target inputs generally within search-container */
 .search-container input[type="text"] {
     width: auto;
     flex: 1;
@@ -293,41 +303,9 @@ body {
     padding: 0 10px;
 }
 
-/* --- Load More Button --- */
-.load-more-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 24px;
-    width: 100%;
-    padding-bottom: 20px;
-}
-
-.load-more-btn {
-    background-color: var(--primary-color); /* เปลี่ยนเป็นสีน้ำเงิน */
-    color: #ffffff; /* เปลี่ยนตัวหนังสือเป็นสีขาว */
-    border: none;
-    padding: 10px 24px;
-    border-radius: 50px;
-    font-size: 0.95rem;
-    font-family: 'Noto Sans Thai', sans-serif;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 6px rgba(66, 133, 244, 0.25); /* เพิ่มเงาสีฟ้าให้ดูมีมิติ */
-}
-
-.load-more-btn:hover {
-    background-color: var(--primary-dark); /* สีน้ำเงินเข้มขึ้นเมื่อเอาเมาส์ชี้ */
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(66, 133, 244, 0.35);
-}
-
-.load-more-btn:active {
-    transform: translateY(0);
-}
+/* Remove load more styles */
+.load-more-container { display: none; }
+.load-more-btn { display: none; }
 
 .product-card {
     background-color: var(--card-background);
@@ -731,6 +709,48 @@ input.skeleton-shimmer { border: none !important; background-color: var(--skelet
    ========================================= */
 
 @media (max-width: 600px) {
+    /* Mobile Search Layout */
+    .search-container {
+        /* ปรับให้ Container หลัก (ที่เป็น Wrapper) ไม่มีกรอบ และเรียงแนวตั้ง */
+        flex-direction: column;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .search-container:hover,
+    .search-container:focus-within {
+    box-shadow: none;
+    border-color: none;
+    }
+    
+    .search-input-wrapper {
+        /* ย้ายกรอบมาไว้ที่ Wrapper ของ Input แทน */
+        border: 1px solid #dfe1e5;
+        border-radius: 50px;
+        background: #fff;
+        padding: 4px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+
+    .search-separator {
+        display: none;
+    }
+
+    #stock-checkbox-label {
+        /* ปรับ Checkbox ให้ลงมาอยู่ข้างล่างและกึ่งกลาง */
+        width: 100%;
+        margin-top: 10px;
+        margin-right: 0;
+        justify-content: center; 
+        border: none; /* ลบเส้นคั่นเก่าออกถ้ามี */
+        padding: 0;
+    }
+
     /* Layout */
     body { padding: 0; }
 

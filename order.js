@@ -1,15 +1,15 @@
 // Global scope wrapper
 (function() {
-    // ย้าย API_URL เข้ามาข้างใน function เพื่อไม่ให้ชื่อชนกับไฟล์อื่น
+    // API URL
     const API_URL = 'https://script.google.com/macros/s/AKfycbwygcJWfjcLXn3IB7QV4fmD0xSMSqfICob-TfkkEDcZlawkq1Z1qWqvGGiMIjOxL7jv/exec';
 
     // Config: รายชื่อเกมและรูปภาพ
     const GAME_CONFIG = {
-        "Game001": {
+        "Game-1": {
             name: "Chibi Planet",
             icon: "https://scontent.fnak3-1.fna.fbcdn.net/v/t39.30808-6/454034457_888216613326832_350146185151871213_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=-QZS6K6G9i8Q7kNvwHfmIs3&_nc_oc=Adl6JUj_wt11h7SZ1kGKCyUa_cBB0wqkol_pnN7R15gYLIHF07KQn9BmhLXwNwKFMC8&_nc_zt=23&_nc_ht=scontent.fnak3-1.fna&_nc_gid=vL6mkNrhNa8MtAsxOj2HYg&oh=00_Afkp5yWdXXIM7iYWTahLiO9CSvwyYVgEPVcYpCugOs4JaA&oe=693AB87F"
         },
-        "Game002": {
+        "Game-2": {
             name: "Zabb World",
             icon: "https://scontent.fnak3-1.fna.fbcdn.net/v/t39.30808-6/481112265_1236524098476464_4209232438207953182_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=YXYrU0b1ZH8Q7kNvwHQt-z1&_nc_oc=Adk9pw9BEczYuUxKpw5nLegl50q-Of-oBKrgQNjDlOWKiPu84MIzzY0FM8stcZc8HYU&_nc_zt=23&_nc_ht=scontent.fnak3-1.fna&_nc_gid=Pui9Ws2bxrqMx1X-0Qq5EQ&oh=00_AfnJpaH6y-dGNRrZO3CpgGOkjpWT7yIh8mbCq2VGGdMcfA&oe=693AC49C"
         }
@@ -20,23 +20,26 @@
     let filteredOrdersList = []; 
     let completedOrdersList = []; 
     
-    // เพิ่มตัวแปรเช็คสถานะการโหลด
+    // สถานะการโหลด
     let isDataLoaded = false;
     let isLoading = false;
+    
+    // Auto Update Variables
+    let updateInterval = null;
+    const UPDATE_DELAY_MS = 10000; // อัพเดททุก 10 วินาที
 
     let currentPage = 1;
     const itemsPerPage = 5;
 
-    // Elements (Updated IDs to 'order-')
+    // Elements
     const searchContainerBox = document.getElementById('order-search-container-box');
     const searchInput = document.getElementById('order-search-input');
     const clearSearchBtn = document.getElementById('order-clear-search-btn');
     const pendingList = document.getElementById('pending-list');
     const completedList = document.getElementById('completed-list');
 
-    // Expose refresh function to window for SPA transitions
+    // Expose refresh function
     window.refreshOrderData = function() {
-        // แก้ไข: โหลดข้อมูลเฉพาะเมื่อยังไม่เคยโหลด และไม่ได้กำลังโหลดอยู่
         if (!isDataLoaded && !isLoading) {
             loadData(); 
         }
@@ -107,12 +110,23 @@
         if(searchInput) searchInput.disabled = false;
     }
 
+    // --- Real-time Logic ---
+    function startAutoUpdate() {
+        if (updateInterval) clearInterval(updateInterval);
+        // เรียก loadData แบบ Background Update (true) ทุกๆ 10 วินาที
+        updateInterval = setInterval(() => {
+            loadData(true);
+        }, UPDATE_DELAY_MS);
+    }
+
     // --- Data Loading via API ---
-    async function loadData() {
+    // เพิ่ม parameter isBackgroundUpdate เพื่อแยกว่าเป็นการโหลดครั้งแรกหรืออัพเดทเบื้องหลัง
+    async function loadData(isBackgroundUpdate = false) {
         if (isLoading) return;
         isLoading = true;
 
-        renderSkeletonLoadingOrder();
+        // ถ้าไม่ใช่ Background Update ให้โชว์ Skeleton
+        if (!isBackgroundUpdate) renderSkeletonLoadingOrder();
         
         try {
             const response = await fetch(API_URL);
@@ -135,13 +149,13 @@
                     isCompleted = itemsList.every(i => (i.process_status === 'เรียบร้อยแล้ว'));
                 }
 
-                // --- จัดการวันที่ ---
+                // Date Parsing
                 let orderDate = null;
                 if (item.order_date && item.order_date !== "") {
                     orderDate = new Date(item.order_date);
                 }
 
-                // --- จัดการชื่อและรูปเกม ---
+                // Game Info Parsing
                 const rawGameId = item.game_id || "";
                 let gameName = rawGameId || '-';
                 let gameIcon = null;
@@ -178,7 +192,7 @@
                 };
             });
 
-            // Sort by date desc (ใหม่สุดขึ้นก่อน)
+            // Sort by date desc
             allOrders.sort((a, b) => {
                 const dateA = a.order_date ? a.order_date.getTime() : 0;
                 const dateB = b.order_date ? b.order_date.getTime() : 0;
@@ -186,12 +200,15 @@
             });
 
             isDataLoaded = true;
-            processOrders();
-            removeSkeletonLoadingOrder();
+            processOrders(); // Refresh UI with new data
+            
+            if (!isBackgroundUpdate) removeSkeletonLoadingOrder();
 
         } catch (error) {
             console.error("Error loading orders from API:", error);
-            if(pendingList) pendingList.innerHTML = `<div class="error-msg">โหลดข้อมูลไม่สำเร็จ: ${error.message}</div>`;
+            if (!isBackgroundUpdate && pendingList) {
+                pendingList.innerHTML = `<div class="error-msg">โหลดข้อมูลไม่สำเร็จ: ${error.message}</div>`;
+            }
             removeSkeletonLoadingOrder();
         } finally {
             isLoading = false;
@@ -199,7 +216,9 @@
     }
 
     function processOrders(filterText = '') {
-        const searchText = (filterText || (searchInput ? searchInput.value : '')).toLowerCase().trim();
+        // ใช้ค่าจากช่องค้นหาปัจจุบัน (เผื่อ user พิมพ์ค้างไว้ตอน auto update ทำงาน)
+        const currentSearch = searchInput ? searchInput.value : '';
+        const searchText = (filterText || currentSearch).toLowerCase().trim();
         
         // Filter
         if (!searchText) {
@@ -216,7 +235,6 @@
     }
 
     function formatDate(dateObj) {
-        // 1. ตรวจสอบความถูกต้องของ dateObj
         if (!dateObj) return ""; 
         if (Object.prototype.toString.call(dateObj) === "[object Date]") {
              if (isNaN(dateObj.getTime())) return "";
@@ -235,12 +253,9 @@
         const hoursVal = dateObj.getHours();
         const minutesVal = dateObj.getMinutes();
         
-        // --- ส่วนแก้ไขใหม่ ---
-        // ถ้าเวลาเป็น 00:00 (คือไม่มีข้อมูลเวลา) ให้แสดงแค่วันที่
         if (hoursVal === 0 && minutesVal === 0) {
             return `${day} ${month} ${year}`;
         }
-        // ------------------
 
         const hours = String(hoursVal).padStart(2, '0');
         const minutes = String(minutesVal).padStart(2, '0');
@@ -606,5 +621,6 @@
 
     // Start
     loadData();
+    startAutoUpdate(); // เริ่มต้น Auto Update
 
 })();
