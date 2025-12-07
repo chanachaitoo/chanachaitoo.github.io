@@ -180,8 +180,8 @@
                     
                     items: itemsList.map(i => ({
                         product_name: i.product_name || 'สินค้า',
-                        product_type: i.product_type_name || '-',
-                        char_display_id: i.customer_game_id || '-',
+                        product_type: i.product_type_name || 'ไม่ระบุ',
+                        char_display_id: i.customer_game_id || 'ไม่ระบุ',
                         qty: i.quantity_total || 1,
                         done_qty: i.quantity_done || 0,
                         work_status: translateWorkStatus(i.process_status),
