@@ -146,6 +146,19 @@
                         <div id="pending-list" class="order-list">
                             <!-- Items will be injected here -->
                         </div>
+                        
+                        <!-- ADDED: Pagination for Pending -->
+                        <div id="pagination-controls-pending" class="pagination-container hidden">
+                            <button id="prev-btn-pending" class="page-btn">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            
+                            <span class="page-info" id="page-info-pending">1 / 1</span>
+                            
+                            <button id="next-btn-pending" class="page-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="column-card">
@@ -160,14 +173,15 @@
                             <!-- Items will be injected here -->
                         </div>
                         
-                        <div id="pagination-controls" class="pagination-container hidden">
-                            <button id="prev-btn" class="page-btn">
+                        <!-- UPDATED IDs: Pagination for Completed -->
+                        <div id="pagination-controls-completed" class="pagination-container hidden">
+                            <button id="prev-btn-completed" class="page-btn">
                                 <i class="fas fa-chevron-left"></i>
                             </button>
                             
-                            <span class="page-info" id="page-info">1 / 1</span>
+                            <span class="page-info" id="page-info-completed">1 / 1</span>
                             
-                            <button id="next-btn" class="page-btn">
+                            <button id="next-btn-completed" class="page-btn">
                                 <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>

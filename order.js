@@ -11,6 +11,7 @@
     // Variables
     let allOrders = [];
     let filteredOrdersList = []; 
+    let pendingOrdersList = []; // Added for Pending Pagination
     let completedOrdersList = []; 
     
     // สถานะการโหลด
@@ -21,7 +22,9 @@
     let updateInterval = null;
     const UPDATE_DELAY_MS = 10000; // อัพเดททุก 10 วินาที
 
-    let currentPage = 1;
+    // Pagination Variables
+    let currentPendingPage = 1;
+    let currentCompletedPage = 1; // Renamed from currentPage
     const itemsPerPage = 5;
 
     // Elements
@@ -325,7 +328,7 @@
         completedList.innerHTML = '';
 
         let totalProducts = 0;
-        let pendingOrders = [];
+        pendingOrdersList = []; 
         completedOrdersList = []; 
 
         if (filteredOrdersList.length === 0) {
@@ -338,6 +341,10 @@
             `;
             pendingList.innerHTML = emptyMsg;
             completedList.innerHTML = emptyMsg;
+            
+            // Hide Paginations if empty
+            togglePagination('pending', false);
+            togglePagination('completed', false);
         }
 
         filteredOrdersList.forEach(order => {
@@ -345,7 +352,7 @@
             if (order.is_completed) {
                 completedOrdersList.push(order);
             } else {
-                pendingOrders.push(order);
+                pendingOrdersList.push(order);
             }
         });
 
@@ -356,57 +363,85 @@
 
         const pendingBadge = document.getElementById('pending-count-badge');
         if (pendingBadge) {
-            if (pendingOrders.length > 0) {
-                pendingBadge.innerText = pendingOrders.length;
+            if (pendingOrdersList.length > 0) {
+                pendingBadge.innerText = pendingOrdersList.length;
                 pendingBadge.classList.remove('hidden');
             } else {
                 pendingBadge.classList.add('hidden');
             }
         }
 
-        if (pendingOrders.length === 0 && filteredOrdersList.length > 0) {
-            pendingList.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon" style="color: #fdba74; background: #fff7ed;">
-                        <i class="fas fa-clipboard-check"></i>
-                    </div>
-                    <div class="empty-text">ไม่มีรายการที่กำลังดำเนินการ</div>
-                </div>
-            `;
-        } else {
-            pendingOrders.forEach(order => {
-                const card = createCard(order);
-                pendingList.appendChild(card);
-            });
-        }
-
+        renderPendingOrdersPage();
         renderCompletedOrdersPage();
     }
 
+    // --- Render Pending (With Pagination) ---
+    function renderPendingOrdersPage() {
+        if(!pendingList) return;
+
+        if (filteredOrdersList.length === 0) {
+            togglePagination('pending', false);
+            return;
+        }
+        
+        pendingList.innerHTML = ''; // Clear current list
+
+        if (pendingOrdersList.length === 0) {
+            if (filteredOrdersList.length > 0) {
+                pendingList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon" style="color: #fdba74; background: #fff7ed;">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div class="empty-text">ไม่มีรายการที่กำลังดำเนินการ</div>
+                    </div>
+                `;
+            }
+            togglePagination('pending', false);
+            return;
+        }
+
+        // Slice for Pagination
+        const startIndex = (currentPendingPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const pageItems = pendingOrdersList.slice(startIndex, endIndex);
+
+        pageItems.forEach(order => {
+            const card = createCard(order);
+            pendingList.appendChild(card);
+        });
+
+        updatePaginationControls('pending', pendingOrdersList.length, currentPendingPage);
+    }
+
+    // --- Render Completed (With Pagination) ---
     function renderCompletedOrdersPage() {
         if(!completedList) return;
 
         if (filteredOrdersList.length === 0) {
-                togglePagination(false);
-                return;
+            togglePagination('completed', false);
+            return;
         }
-        completedList.innerHTML = '';
+        
+        completedList.innerHTML = ''; // Clear current list
 
         if (completedOrdersList.length === 0) {
             if (filteredOrdersList.length > 0) {
-                    completedList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon" style="color: #86efac; background: #f0fdf4;">
-                            <i class="fas fa-box-open"></i>
-                        </div>
-                        <div class="empty-text">ไม่มีรายการที่สำเร็จแล้ว</div>
+                completedList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon" style="color: #86efac; background: #f0fdf4;">
+                        <i class="fas fa-box-open"></i>
                     </div>
-                    `;
+                    <div class="empty-text">ไม่มีรายการที่สำเร็จแล้ว</div>
+                </div>
+                `;
             }
-            togglePagination(false);
+            togglePagination('completed', false);
             return;
         }
-        const startIndex = (currentPage - 1) * itemsPerPage;
+
+        // Slice for Pagination
+        const startIndex = (currentCompletedPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         const pageItems = completedOrdersList.slice(startIndex, endIndex);
 
@@ -415,15 +450,22 @@
             completedList.appendChild(card);
         });
 
-        updatePaginationControls();
+        updatePaginationControls('completed', completedOrdersList.length, currentCompletedPage);
     }
 
-    function updatePaginationControls() {
-        const totalPages = Math.ceil(completedOrdersList.length / itemsPerPage);
-        const controls = document.getElementById('pagination-controls');
-        const prevBtn = document.getElementById('prev-btn');
-        const nextBtn = document.getElementById('next-btn');
-        const pageInfo = document.getElementById('page-info');
+    // --- Pagination Helpers ---
+    function updatePaginationControls(type, totalItems, currentPage) {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        // type: 'pending' or 'completed'
+        const controlsId = `pagination-controls-${type}`;
+        const prevBtnId = `prev-btn-${type}`;
+        const nextBtnId = `next-btn-${type}`;
+        const pageInfoId = `page-info-${type}`;
+
+        const controls = document.getElementById(controlsId);
+        const prevBtn = document.getElementById(prevBtnId);
+        const nextBtn = document.getElementById(nextBtnId);
+        const pageInfo = document.getElementById(pageInfoId);
 
         if(!controls) return;
 
@@ -437,8 +479,8 @@
         }
     }
 
-    function togglePagination(show) {
-        const controls = document.getElementById('pagination-controls');
+    function togglePagination(type, show) {
+        const controls = document.getElementById(`pagination-controls-${type}`);
         if(!controls) return;
         if (show) controls.classList.remove('hidden');
         else controls.classList.add('hidden');
@@ -480,25 +522,53 @@
         return card;
     }
 
-    if(document.getElementById('prev-btn')) {
-        document.getElementById('prev-btn').addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
+    // --- Event Listeners for Pagination Buttons ---
+
+    // PENDING Pagination
+    const prevPendingBtn = document.getElementById('prev-btn-pending');
+    if(prevPendingBtn) {
+        prevPendingBtn.addEventListener('click', () => {
+            if (currentPendingPage > 1) {
+                currentPendingPage--;
+                renderPendingOrdersPage();
+            }
+        });
+    }
+
+    const nextPendingBtn = document.getElementById('next-btn-pending');
+    if(nextPendingBtn) {
+        nextPendingBtn.addEventListener('click', () => {
+            const totalPages = Math.ceil(pendingOrdersList.length / itemsPerPage);
+            if (currentPendingPage < totalPages) {
+                currentPendingPage++;
+                renderPendingOrdersPage();
+            }
+        });
+    }
+
+    // COMPLETED Pagination
+    const prevCompletedBtn = document.getElementById('prev-btn-completed');
+    if(prevCompletedBtn) {
+        prevCompletedBtn.addEventListener('click', () => {
+            if (currentCompletedPage > 1) {
+                currentCompletedPage--;
                 renderCompletedOrdersPage();
             }
         });
     }
 
-    if(document.getElementById('next-btn')) {
-        document.getElementById('next-btn').addEventListener('click', () => {
+    const nextCompletedBtn = document.getElementById('next-btn-completed');
+    if(nextCompletedBtn) {
+        nextCompletedBtn.addEventListener('click', () => {
             const totalPages = Math.ceil(completedOrdersList.length / itemsPerPage);
-            if (currentPage < totalPages) {
-                currentPage++;
+            if (currentCompletedPage < totalPages) {
+                currentCompletedPage++;
                 renderCompletedOrdersPage();
             }
         });
     }
 
+    // Search Input
     if(searchInput) {
         searchInput.addEventListener('input', (e) => {
             const val = e.target.value;
@@ -507,7 +577,9 @@
             } else {
                 if(clearSearchBtn) clearSearchBtn.classList.add('hidden');
             }
-            currentPage = 1; 
+            // Reset pages to 1 on search
+            currentPendingPage = 1;
+            currentCompletedPage = 1; 
             processOrders(val);
         });
     }
@@ -519,7 +591,8 @@
                 searchInput.focus();
             }
             clearSearchBtn.classList.add('hidden');
-            currentPage = 1;
+            currentPendingPage = 1;
+            currentCompletedPage = 1;
             processOrders('');
         });
     }
@@ -561,9 +634,9 @@
         payEl.innerText = order.payment_status;
         
         payEl.className = 'info-val';
-        if (order.payment_status.includes('รอชำระ') || order.payment_status === 'pending') {
+        if (order.payment_status.includes('รอชำระเงิน') || order.payment_status === 'pending') {
             payEl.classList.add('text-payment-pending');
-        } else if (order.payment_status.includes('ชำระ') || order.payment_status === 'paid') {
+        } else if (order.payment_status.includes('ชำระเงินเรียบร้อย') || order.payment_status === 'paid') {
             payEl.classList.add('text-payment-success');
         } else {
             payEl.style.color = '#6b7280';
