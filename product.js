@@ -1,4 +1,5 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2BiIPCm_K_ZoUEbnGNp8L_HnAP2X61df607Qx7GwkMrrtC/exec";
+const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบันทึกข้อมูลลงเครื่อง
 
 // Global scope wrapper to prevent conflict
 (function() {
@@ -282,6 +283,10 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
 
     function renderCategoryChips() {
         if(!categoryFilterContainer) return;
+        
+        // เก็บหมวดหมู่ที่เลือกไว้ก่อนหน้า
+        const previousSelection = currentFilter;
+
         categoryFilterContainer.innerHTML = '';
         
         const allBtn = document.createElement('button');
@@ -346,10 +351,45 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
         startAutoUpdate();
     }
 
+    // ฟังก์ชันแปลงข้อมูลดิบเป็นรูปแบบที่ใช้งาน
+    function processRawData(items) {
+        return items.map((d, index) => {
+            return {
+                id: d.id || `prod_${index}`,
+                customId: d.customId || d.id || `prod_${index}`,
+                name: d.name || d.productName || 'ไม่มีชื่อ',
+                price: d.price || 0,
+                quantity: d.stock || d.quantity || 0,
+                imageUrl: d.imageUrl || d.imgUrl || d.img || d.image || '',
+                tags: d.tags || '', 
+                unit: d.unit || 'ชิ้น',
+                type: d.type || 'ไอเทม'
+            };
+        }).filter(p => p.type === 'ไอเทม');
+    }
+
     // เพิ่ม Parameter isBackgroundUpdate เพื่อแยกว่าเป็นการโหลดครั้งแรก หรือโหลดเพื่ออัพเดท
     async function loadData(isBackgroundUpdate = false) {
-        if (!isBackgroundUpdate) renderSkeletonLoading();
+        // --- ส่วนที่ 1: โหลดจาก LocalStorage (Cache) ---
+        if (!isBackgroundUpdate) {
+            const cachedData = localStorage.getItem(STORAGE_KEY);
+            if (cachedData) {
+                try {
+                    const parsedData = JSON.parse(cachedData);
+                    // ถ้ามีข้อมูลใน Cache ให้แสดงผลทันที ไม่ต้องรอ fetch
+                    allProducts = processRawData(parsedData);
+                    calculateActiveTags();
+                    onInitialDataLoaded();
+                } catch (e) {
+                    console.warn("Failed to parse cached data", e);
+                    renderSkeletonLoading();
+                }
+            } else {
+                renderSkeletonLoading(); // ถ้าไม่มี Cache เลย ค่อยโชว์ Skeleton
+            }
+        }
 
+        // --- ส่วนที่ 2: ดึงข้อมูลสดจาก API ---
         try {
             const response = await fetch(API_URL);
             const data = await response.json();
@@ -361,26 +401,21 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
                 items = data.data;
             }
 
-            // แปลงข้อมูลใหม่
-            const newProducts = items.map((d, index) => {
-                return {
-                    id: d.id || `prod_${index}`,
-                    customId: d.customId || d.id || `prod_${index}`,
-                    name: d.name || d.productName || 'ไม่มีชื่อ',
-                    price: d.price || 0,
-                    quantity: d.stock || d.quantity || 0,
-                    imageUrl: d.imageUrl || d.imgUrl || d.img || d.image || '',
-                    tags: d.tags || '', 
-                    unit: d.unit || 'ชิ้น',
-                    type: d.type || 'ไอเทม'
-                };
-            }).filter(p => p.type === 'ไอเทม');
+            // บันทึกข้อมูลสดลง LocalStorage ไว้ใช้ครั้งหน้า
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+            } catch (e) {
+                console.warn("Quota exceeded or error saving to localStorage", e);
+            }
 
-            // อัพเดทข้อมูลในตัวแปรหลัก
+            // แปลงข้อมูลใหม่
+            const newProducts = processRawData(items);
+
+            // เปรียบเทียบว่าข้อมูลเปลี่ยนไหม (แบบง่าย) หรือแค่อัพเดททับเลย
             allProducts = newProducts;
 
             if (!isBackgroundUpdate) {
-                // ถ้าเป็นการโหลดครั้งแรก ให้ทำกระบวนการปกติ
+                // ถ้าเป็นการโหลดครั้งแรก (และ API ตอบกลับมาแล้ว) ให้รีเฟรชหน้าจออีกรอบเพื่อให้มั่นใจว่าเป็นข้อมูลล่าสุด
                 calculateActiveTags();
                 onInitialDataLoaded();
             } else {
@@ -390,7 +425,9 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2B
 
         } catch (error) {
             console.error("Error loading products:", error);
-            if (!isBackgroundUpdate && grid) {
+            // ถ้าโหลด API ไม่สำเร็จ แต่เรามีข้อมูลเก่าโชว์อยู่แล้ว ก็ไม่ต้องทำอะไร (User ยังเห็นข้อมูลเก่าได้)
+            // แต่ถ้าไม่มีข้อมูลเลย (allProducts ว่างเปล่า) ให้โชว์ Error
+            if (!isBackgroundUpdate && allProducts.length === 0 && grid) {
                 grid.innerHTML = `<div id="message-container">โหลดข้อมูลไม่สำเร็จ: ${error.message}</div>`;
             }
         }

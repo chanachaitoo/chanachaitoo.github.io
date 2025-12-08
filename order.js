@@ -2,18 +2,11 @@
 (function() {
     // API URL
     const API_URL = 'https://script.google.com/macros/s/AKfycbwygcJWfjcLXn3IB7QV4fmD0xSMSqfICob-TfkkEDcZlawkq1Z1qWqvGGiMIjOxL7jv/exec';
+    const STORAGE_KEY = 'site_order_cache_v1'; // Key สำหรับบันทึกข้อมูลลงเครื่อง
 
     // Config: รายชื่อเกมและรูปภาพ
-    const GAME_CONFIG = {
-        "Game-1": {
-            name: "Chibi Planet",
-            icon: "https://scontent.fnak3-1.fna.fbcdn.net/v/t39.30808-6/454034457_888216613326832_350146185151871213_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=-QZS6K6G9i8Q7kNvwHfmIs3&_nc_oc=Adl6JUj_wt11h7SZ1kGKCyUa_cBB0wqkol_pnN7R15gYLIHF07KQn9BmhLXwNwKFMC8&_nc_zt=23&_nc_ht=scontent.fnak3-1.fna&_nc_gid=vL6mkNrhNa8MtAsxOj2HYg&oh=00_Afkp5yWdXXIM7iYWTahLiO9CSvwyYVgEPVcYpCugOs4JaA&oe=693AB87F"
-        },
-        "Game-2": {
-            name: "Zabb World",
-            icon: "https://scontent.fnak3-1.fna.fbcdn.net/v/t39.30808-6/481112265_1236524098476464_4209232438207953182_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=YXYrU0b1ZH8Q7kNvwHQt-z1&_nc_oc=Adk9pw9BEczYuUxKpw5nLegl50q-Of-oBKrgQNjDlOWKiPu84MIzzY0FM8stcZc8HYU&_nc_zt=23&_nc_ht=scontent.fnak3-1.fna&_nc_gid=Pui9Ws2bxrqMx1X-0Qq5EQ&oh=00_AfnJpaH6y-dGNRrZO3CpgGOkjpWT7yIh8mbCq2VGGdMcfA&oe=693AC49C"
-        }
-    };
+    // *แก้ไข* ไม่ต้องใช้ GAME_CONFIG แบบ Hardcode แล้ว เพราะดึงมาจากฐานข้อมูลผ่าน API
+    // แต่ถ้าอยากมี Default ก็สามารถใส่ไว้ได้ (แต่ในที่นี้ลบออกเพื่อให้ใช้จาก DB เป็นหลัก)
 
     // Variables
     let allOrders = [];
@@ -119,15 +112,92 @@
         }, UPDATE_DELAY_MS);
     }
 
+    // Helper: แปลงข้อมูลดิบจาก API หรือ Cache ให้เป็น Object ที่พร้อมใช้งาน
+    function processRawOrdersData(rawOrders) {
+        const processed = rawOrders.map(item => {
+            const itemsList = item.items || [];
+            
+            let isCompleted = false;
+            if (typeof item.is_completed !== 'undefined') {
+                isCompleted = item.is_completed;
+            } else if (itemsList.length > 0) {
+                isCompleted = itemsList.every(i => (i.process_status === 'เรียบร้อยแล้ว'));
+            }
+
+            // Date Parsing
+            let orderDate = null;
+            if (item.order_date && item.order_date !== "") {
+                orderDate = new Date(item.order_date);
+            }
+
+            // Game Info Parsing
+            // *แก้ไข* รับค่า game_name และ game_icon จาก API โดยตรง
+            const rawGameId = item.game_id || "";
+            let gameName = item.game_name || rawGameId || '-';
+            let gameIcon = item.game_icon || null;
+
+            return {
+                id: item.order_id,          
+                order_id: item.order_id,
+                order_date: orderDate,
+                
+                game_display_name: gameName,
+                game_display_icon: gameIcon,
+                
+                customer_display_id: item.customer_account_id || 'ไม่ระบุ',
+                
+                payment_status: translatePaymentStatus(item.payment_status),
+                net_price: item.net_price || 0,
+                
+                items: itemsList.map(i => ({
+                    product_name: i.product_name || 'สินค้า',
+                    product_type: i.product_type_name || 'ไม่ระบุ',
+                    char_display_id: i.customer_game_id || 'ไม่ระบุ',
+                    qty: i.quantity_total || 1,
+                    done_qty: i.quantity_done || 0,
+                    work_status: translateWorkStatus(i.process_status),
+                    product_img: i.image_link || ''
+                })),
+                
+                is_completed: isCompleted
+            };
+        });
+
+        // Sort by date desc
+        return processed.sort((a, b) => {
+            const dateA = a.order_date ? a.order_date.getTime() : 0;
+            const dateB = b.order_date ? b.order_date.getTime() : 0;
+            return dateB - dateA;
+        });
+    }
+
     // --- Data Loading via API ---
     // เพิ่ม parameter isBackgroundUpdate เพื่อแยกว่าเป็นการโหลดครั้งแรกหรืออัพเดทเบื้องหลัง
     async function loadData(isBackgroundUpdate = false) {
         if (isLoading) return;
         isLoading = true;
 
-        // ถ้าไม่ใช่ Background Update ให้โชว์ Skeleton
-        if (!isBackgroundUpdate) renderSkeletonLoadingOrder();
+        // --- ส่วนที่ 1: โหลดจาก LocalStorage (Cache) ---
+        // ทำเฉพาะตอนโหลดครั้งแรก และยังไม่มีข้อมูล
+        if (!isBackgroundUpdate && !isDataLoaded) {
+            const cachedData = localStorage.getItem(STORAGE_KEY);
+            if (cachedData) {
+                try {
+                    const rawCached = JSON.parse(cachedData);
+                    allOrders = processRawOrdersData(rawCached);
+                    isDataLoaded = true;
+                    processOrders(); // แสดงผลทันที
+                    removeSkeletonLoadingOrder(); // เอา Skeleton ออก
+                } catch (e) {
+                    console.warn("Failed to parse cached orders", e);
+                    renderSkeletonLoadingOrder(); // ถ้า Cache พัง โชว์ Skeleton รอ
+                }
+            } else {
+                renderSkeletonLoadingOrder(); // ถ้าไม่มี Cache โชว์ Skeleton
+            }
+        }
         
+        // --- ส่วนที่ 2: ดึงข้อมูลสดจาก API ---
         try {
             const response = await fetch(API_URL);
             const data = await response.json();
@@ -139,66 +209,15 @@
                 rawOrders = data.data;
             }
 
-            allOrders = rawOrders.map(item => {
-                const itemsList = item.items || [];
-                
-                let isCompleted = false;
-                if (typeof item.is_completed !== 'undefined') {
-                    isCompleted = item.is_completed;
-                } else if (itemsList.length > 0) {
-                    isCompleted = itemsList.every(i => (i.process_status === 'เรียบร้อยแล้ว'));
-                }
+            // บันทึกข้อมูลสดลง LocalStorage
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(rawOrders));
+            } catch (e) {
+                console.warn("Error saving orders to localStorage", e);
+            }
 
-                // Date Parsing
-                let orderDate = null;
-                if (item.order_date && item.order_date !== "") {
-                    orderDate = new Date(item.order_date);
-                }
-
-                // Game Info Parsing
-                const rawGameId = item.game_id || "";
-                let gameName = rawGameId || '-';
-                let gameIcon = null;
-
-                if (GAME_CONFIG[rawGameId]) {
-                    gameName = GAME_CONFIG[rawGameId].name;
-                    gameIcon = GAME_CONFIG[rawGameId].icon;
-                }
-
-                return {
-                    id: item.order_id,          
-                    order_id: item.order_id,
-                    order_date: orderDate,
-                    
-                    game_display_name: gameName,
-                    game_display_icon: gameIcon,
-                    
-                    customer_display_id: item.customer_account_id || 'ไม่ระบุ',
-                    
-                    payment_status: translatePaymentStatus(item.payment_status),
-                    net_price: item.net_price || 0,
-                    
-                    items: itemsList.map(i => ({
-                        product_name: i.product_name || 'สินค้า',
-                        product_type: i.product_type_name || 'ไม่ระบุ',
-                        char_display_id: i.customer_game_id || 'ไม่ระบุ',
-                        qty: i.quantity_total || 1,
-                        done_qty: i.quantity_done || 0,
-                        work_status: translateWorkStatus(i.process_status),
-                        product_img: i.image_link || ''
-                    })),
-                    
-                    is_completed: isCompleted
-                };
-            });
-
-            // Sort by date desc
-            allOrders.sort((a, b) => {
-                const dateA = a.order_date ? a.order_date.getTime() : 0;
-                const dateB = b.order_date ? b.order_date.getTime() : 0;
-                return dateB - dateA;
-            });
-
+            // แปลงและอัพเดทข้อมูลในหน่วยความจำ
+            allOrders = processRawOrdersData(rawOrders);
             isDataLoaded = true;
             processOrders(); // Refresh UI with new data
             
@@ -206,7 +225,9 @@
 
         } catch (error) {
             console.error("Error loading orders from API:", error);
-            if (!isBackgroundUpdate && pendingList) {
+            // ถ้าโหลด API พัง แต่เรามี Cache (isDataLoaded = true) user ก็ยังเห็นข้อมูลเก่าได้
+            // แต่ถ้าไม่มีข้อมูลเลย ให้แจ้ง Error
+            if (!isBackgroundUpdate && !isDataLoaded && pendingList) {
                 pendingList.innerHTML = `<div class="error-msg">โหลดข้อมูลไม่สำเร็จ: ${error.message}</div>`;
             }
             removeSkeletonLoadingOrder();
