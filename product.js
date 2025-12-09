@@ -1,22 +1,17 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbwkamDi4BSVjWb562p6iX2BiIPCm_K_ZoUEbnGNp8L_HnAP2X61df607Qx7GwkMrrtC/exec";
-const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบันทึกข้อมูลลงเครื่อง
+const STORAGE_KEY = 'site_product_cache_v1';
 
-// Global scope wrapper to prevent conflict
 (function() {
-    // ตัวแปรหลัก
     let allProducts = [];
     let allGameTags = []; 
-    let gameTagsMap = {}; 
     let activeTagIds = new Set(); 
     let filteredAndSortedProducts = [];
     let currentFilter = 'all';
     let isDraggingCategory = false;
     
-    // ตัวแปรสำหรับ Auto Update
     let updateInterval = null;
-    const UPDATE_DELAY_MS = 10000; // อัพเดททุก 10 วินาที
+    const UPDATE_DELAY_MS = 10000;
     
-    // DOM Elements
     const grid = document.getElementById('product-grid');
     const searchInput = document.getElementById('home-search-input');
     const searchClearBtn = document.getElementById('home-search-clear-btn');
@@ -92,34 +87,31 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
         const searchTerms = rawSearchTerm.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
         let result = allProducts.filter(product => {
-            // 1. กรองสินค้าหมด
             if (hideOutOfStock && Number(product.quantity) <= 0) return false;
 
-            // 2. กรองตามคำค้นหา
             if (searchTerms.length > 0) {
                 const productName = product.name.toLowerCase();
                 const match = searchTerms.some(term => productName.includes(term));
                 if (!match) return false;
             }
 
-            // 3. กรองตามหมวดหมู่
             if (selectedCategoryCustomId !== 'all') {
                 const productTags = parseTags(product.tags);
-                const categoryName = selectedCategoryCustomId; 
-                if (!productTags.includes(categoryName)) {
+                if (!productTags.includes(selectedCategoryCustomId)) {
                     return false;
                 }
             }
             return true;
         });
 
-        // เรียงลำดับตามราคา
         filteredAndSortedProducts = result.sort((a, b) => Number(a.price) - Number(b.price));
     }
 
+    // --- NEW: Smart Rendering Function (หัวใจหลักที่แก้ภาพกระพริบ) ---
     function updateDisplay() {
         if (!searchInput) return;
 
+        // Toggle Clear Button
         if (searchInput.value.trim().length > 0) {
             if(searchClearBtn) searchClearBtn.classList.remove('hidden');
         } else {
@@ -130,7 +122,10 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
         
         if(!grid) return;
         
-        if (filteredAndSortedProducts.length === 0) {
+        const displayProducts = filteredAndSortedProducts;
+
+        // กรณีไม่พบสินค้า
+        if (displayProducts.length === 0) {
             grid.innerHTML = `
                 <div id="message-container">
                     <svg class="empty-state-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -143,173 +138,188 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
             return;
         }
 
-        const displayProducts = filteredAndSortedProducts;
-        grid.innerHTML = '';
-        renderProducts(displayProducts);
-    }
+        // ลบข้อความ "ไม่พบสินค้า" ถ้ามีอยู่
+        const msgContainer = grid.querySelector('#message-container');
+        if (msgContainer) msgContainer.remove();
 
-    function renderProducts(products) {
-        products.forEach((product) => {
-            const card = document.createElement('div');
-            card.className = 'product-card';
-            // เพิ่ม ID ให้กับการ์ดเพื่อให้อัพเดทเฉพาะจุดได้
-            card.dataset.productId = product.customId; 
-            
-            const isOutOfStock = Number(product.quantity) <= 0;
-            if (isOutOfStock) card.classList.add('out-of-stock');
-            
-            const formattedPrice = Number(product.price).toLocaleString('th-TH');
-            const displayQty = isOutOfStock ? 0 : Number(product.quantity);
-            
-            const tagNames = parseTags(product.tags);
-
-            let tagsHtml = '';
-            if (tagNames.length > 0) {
-                tagsHtml = '<div class="product-tags-container">';
-                const visibleTags = tagNames.slice(0, 1);
-                visibleTags.forEach(name => tagsHtml += `<span class="product-tag">${name}</span>`);
-                if (tagNames.length > 1) {
-                    tagsHtml += `<button class="more-tags-btn" data-product-name="${product.name}" data-all-tags='${JSON.stringify(tagNames)}'>+</button>`;
-                }
-                tagsHtml += '</div>';
+        // 1. เก็บรายการการ์ดที่มีอยู่เดิมบนหน้าจอลง Map เพื่อค้นหาเร็วๆ
+        const existingCards = Array.from(grid.querySelectorAll('.product-card'));
+        const existingCardMap = new Map();
+        existingCards.forEach(card => {
+            if(card.dataset.productId) {
+                existingCardMap.set(card.dataset.productId, card);
+            } else {
+                card.remove(); // ลบการ์ดขยะที่ไม่มี ID (เช่น skeleton)
             }
-
-            const outOfStockOverlay = isOutOfStock ? 
-                `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
-
-            card.innerHTML = `
-                <div class="product-image-container skeleton-shimmer">
-                    <img src="${getOptimizedImageUrl(product.imageUrl)}" 
-                        class="product-image" 
-                        alt="${product.name}" 
-                        loading="lazy"
-                        onload="this.classList.add('loaded'); this.parentElement.classList.remove('skeleton-shimmer');"
-                        onerror="this.parentElement.classList.remove('skeleton-shimmer'); this.src='https://placehold.co/400x400/F1F3F4/5F6368?text=No+Image'; this.classList.add('loaded');">
-                    ${outOfStockOverlay}
-                </div>
-                <div class="product-info">
-                    <h2 class="product-name">${product.name}</h2>
-                    <div class="price-and-tags-row">
-                        <div class="product-price">฿${formattedPrice}</div>
-                        ${tagsHtml}
-                    </div>
-                    <div class="product-details">
-                        <span class="product-quantity">คงเหลือ : 
-                            <span class="quantity-full">${displayQty.toLocaleString('th-TH')}</span>
-                            <span class="quantity-k">${formatQuantityToK(displayQty)}</span>
-                        </span>
-                        <span>${product.unit}</span>
-                    </div>
-                </div>
-            `;
-            grid.appendChild(card);
         });
+
+        // 2. วนลูปสินค้าที่จะแสดง และจัดการ DOM
+        displayProducts.forEach(product => {
+            let card = existingCardMap.get(product.customId);
+
+            if (card) {
+                // A. มีการ์ดนี้อยู่แล้ว: ย้ายตำแหน่งไปท้ายสุด (ซึ่งจะเรียงลำดับใหม่ตาม Loop)
+                // การ appendChild element ที่มีอยู่แล้ว จะเป็นการ "ย้าย" ไม่ใช่สร้างใหม่ (รูปไม่กระพริบ)
+                grid.appendChild(card);
+                
+                // อัพเดทข้อมูลภายในการ์ด (เผื่อมีการเปลี่ยนแปลง Realtime)
+                updateCardContent(card, product);
+                
+                // ลบออกจาก Map เพื่อให้รู้ว่าตัวนี้ถูกใช้ไปแล้ว
+                existingCardMap.delete(product.customId);
+            } else {
+                // B. ยังไม่มีการ์ดนี้: สร้างใหม่
+                card = createProductCard(product);
+                grid.appendChild(card);
+            }
+        });
+
+        // 3. ลบการ์ดที่เหลือใน Map ทิ้ง (คือการ์ดที่ไม่อยู่ในผลการค้นหาแล้ว)
+        existingCardMap.forEach(card => card.remove());
     }
 
-    // --- Real-time Update Logic (Smart Update) ---
+    // สร้าง Element การ์ดสินค้าใหม่
+    function createProductCard(product) {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.dataset.productId = product.customId;
+        
+        // Render เนื้อหาภายในครั้งแรก
+        // (โครงสร้างเหมือนเดิม แต่แยกฟังก์ชันออกมาเพื่อให้เรียกใช้ซ้ำได้)
+        renderCardInnerHtml(card, product);
+        
+        return card;
+    }
+
+    // ฟังก์ชันสร้าง/อัพเดท HTML ภายในการ์ด
+    function renderCardInnerHtml(card, product) {
+        const isOutOfStock = Number(product.quantity) <= 0;
+        const formattedPrice = Number(product.price).toLocaleString('th-TH');
+        const displayQty = isOutOfStock ? 0 : Number(product.quantity);
+        const tagNames = parseTags(product.tags);
+
+        let tagsHtml = '';
+        if (tagNames.length > 0) {
+            tagsHtml = '<div class="product-tags-container">';
+            const visibleTags = tagNames.slice(0, 1);
+            visibleTags.forEach(name => tagsHtml += `<span class="product-tag">${name}</span>`);
+            if (tagNames.length > 1) {
+                tagsHtml += `<button class="more-tags-btn" data-product-name="${product.name}" data-all-tags='${JSON.stringify(tagNames)}'>+</button>`;
+            }
+            tagsHtml += '</div>';
+        }
+
+        const outOfStockOverlay = isOutOfStock ? 
+            `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
+
+        // เช็คว่าเคยมีรูปภาพอยู่แล้วไหม (เพื่อกันรูปกระพริบถ้าเราแค่จะอัพเดท text)
+        const existingImg = card.querySelector('.product-image');
+        const imgUrl = getOptimizedImageUrl(product.imageUrl);
+        let imgHtml = '';
+        
+        if (existingImg && existingImg.src === imgUrl) {
+            // ถ้ารูปเดิม URL เดิม ให้ใช้ HTML เดิม (แต่ต้องระวังเรื่อง skeleton)
+            imgHtml = card.querySelector('.product-image-container').innerHTML;
+        } else {
+            imgHtml = `
+                <img src="${imgUrl}" 
+                    class="product-image" 
+                    alt="${product.name}" 
+                    loading="lazy"
+                    onload="this.classList.add('loaded'); this.parentElement.classList.remove('skeleton-shimmer');"
+                    onerror="this.parentElement.classList.remove('skeleton-shimmer'); this.src='https://placehold.co/400x400/F1F3F4/5F6368?text=No+Image'; this.classList.add('loaded');">
+                ${outOfStockOverlay}
+            `;
+        }
+
+        card.innerHTML = `
+            <div class="product-image-container ${existingImg ? '' : 'skeleton-shimmer'}">
+                ${imgHtml}
+            </div>
+            <div class="product-info">
+                <h2 class="product-name">${product.name}</h2>
+                <div class="price-and-tags-row">
+                    <div class="product-price">฿${formattedPrice}</div>
+                    ${tagsHtml}
+                </div>
+                <div class="product-details">
+                    <span class="product-quantity">คงเหลือ : 
+                        <span class="quantity-full">${displayQty.toLocaleString('th-TH')}</span>
+                        <span class="quantity-k">${formatQuantityToK(displayQty)}</span>
+                    </span>
+                    <span>${product.unit}</span>
+                </div>
+            </div>
+        `;
+        
+        // Update Class Status
+        if (isOutOfStock) card.classList.add('out-of-stock');
+        else card.classList.remove('out-of-stock');
+    }
+
+    // ฟังก์ชันอัพเดทเฉพาะข้อมูล (Text/Number) โดยไม่แตะต้องรูปภาพหากไม่จำเป็น
+    function updateCardContent(card, product) {
+        const newQty = Number(product.quantity);
+        const isOutOfStock = newQty <= 0;
+        
+        // 1. Update Stock Class & Overlay
+        const imgContainer = card.querySelector('.product-image-container');
+        const existingOverlay = card.querySelector('.out-of-stock-overlay');
+
+        if (isOutOfStock) {
+            card.classList.add('out-of-stock');
+            if (!existingOverlay && imgContainer) {
+                const overlay = document.createElement('div');
+                overlay.className = 'out-of-stock-overlay';
+                overlay.innerHTML = '<div class="out-of-stock-text">สินค้าหมด</div>';
+                imgContainer.appendChild(overlay);
+            }
+        } else {
+            card.classList.remove('out-of-stock');
+            if (existingOverlay) existingOverlay.remove();
+        }
+
+        // 2. Update Text Fields
+        const qtyFullEl = card.querySelector('.quantity-full');
+        const qtyKEl = card.querySelector('.quantity-k');
+        const displayQty = isOutOfStock ? 0 : newQty;
+
+        if (qtyFullEl && qtyFullEl.innerText !== displayQty.toLocaleString('th-TH')) {
+            qtyFullEl.innerText = displayQty.toLocaleString('th-TH');
+        }
+        if (qtyKEl) {
+            const kVal = formatQuantityToK(displayQty);
+            if(qtyKEl.innerText !== kVal) qtyKEl.innerText = kVal;
+        }
+
+        const priceEl = card.querySelector('.product-price');
+        const newFormattedPrice = `฿${Number(product.price).toLocaleString('th-TH')}`;
+        if (priceEl && priceEl.innerText !== newFormattedPrice) {
+            priceEl.innerText = newFormattedPrice;
+        }
+
+        const nameEl = card.querySelector('.product-name');
+        if (nameEl && nameEl.innerText !== product.name) {
+            nameEl.innerText = product.name;
+        }
+    }
+
+    // --- Real-time Logic ---
 
     function startAutoUpdate() {
         if (updateInterval) clearInterval(updateInterval);
-        // เรียก loadData แบบ Background Update ทุกๆ 10 วินาที
         updateInterval = setInterval(() => {
             loadData(true);
         }, UPDATE_DELAY_MS);
     }
 
-    // NEW: ฟังก์ชันตัดสินใจว่าจะอัพเดทแบบไหน (Soft Update หรือ Hard Update)
     function handleRealtimeUpdate() {
-        if (!grid) return;
-
-        // 1. จำลองการ Filter และ Sort ด้วยข้อมูลใหม่ล่าสุด
-        filterAndSortProducts();
-
-        // 2. ดึง ID ของสินค้าที่แสดงอยู่บนหน้าจอตอนนี้
-        const currentCardIds = Array.from(grid.querySelectorAll('.product-card'))
-                                   .map(card => card.dataset.productId).join(',');
-        
-        // 3. ดึง ID ของสินค้าที่ควรจะแสดงตามข้อมูลใหม่
-        const newCardIds = filteredAndSortedProducts.map(p => p.customId).join(',');
-
-        // 4. เปรียบเทียบ
-        if (currentCardIds !== newCardIds) {
-            // กรณี A: ลำดับเปลี่ยน, มีสินค้าใหม่, หรือมีสินค้าหายไป -> ต้อง Re-render ใหม่ทั้งแผง (Hard Update)
-            console.log("Structure changed, performing hard update...");
-            // เก็บ Scroll Position ไว้ก่อนรีเฟรช
-            const scrollPos = window.scrollY; 
-            updateDisplay();
-            // พยายามคืนค่า Scroll (อาจจะไม่แม่นยำ 100% ถ้ารายการเปลี่ยนเยอะ แต่ดีกว่าเด้งไปบนสุด)
-            window.scrollTo({top: scrollPos, behavior: 'instant'}); 
-        } else {
-            // กรณี B: ลำดับเหมือนเดิม เป๊ะๆ -> อัพเดทแค่เนื้อหาภายใน (Soft Update)
-            console.log("Structure same, performing soft update...");
-            updateProductContentOnly(filteredAndSortedProducts);
-        }
+        // ใช้ updateDisplay ตัวใหม่ซึ่งจัดการ Diffing ให้แล้ว
+        // ดังนั้นเมื่อเรียก updateDisplay ระบบจะอัพเดทเฉพาะส่วนที่เปลี่ยนให้อัตโนมัติ
+        updateDisplay();
     }
 
-    // NEW: อัพเดทเฉพาะเนื้อหา (ราคา, รูป, ชื่อ, สต็อก) โดยไม่สร้าง Element ใหม่
-    function updateProductContentOnly(products) {
-        products.forEach(product => {
-            const card = document.querySelector(`.product-card[data-product-id="${product.customId}"]`);
-            if (card) {
-                const newQty = Number(product.quantity);
-                const isOutOfStock = newQty <= 0;
-                
-                // --- 1. Update Stock & Overlay ---
-                const imgContainer = card.querySelector('.product-image-container');
-                const existingOverlay = card.querySelector('.out-of-stock-overlay');
-
-                if (isOutOfStock) {
-                    card.classList.add('out-of-stock');
-                    if (!existingOverlay && imgContainer) {
-                        const overlay = document.createElement('div');
-                        overlay.className = 'out-of-stock-overlay';
-                        overlay.innerHTML = '<div class="out-of-stock-text">สินค้าหมด</div>';
-                        imgContainer.appendChild(overlay);
-                    }
-                } else {
-                    card.classList.remove('out-of-stock');
-                    if (existingOverlay) existingOverlay.remove();
-                }
-
-                const qtyFullEl = card.querySelector('.quantity-full');
-                const qtyKEl = card.querySelector('.quantity-k');
-                const displayQty = isOutOfStock ? 0 : newQty;
-
-                if (qtyFullEl && qtyFullEl.innerText !== displayQty.toLocaleString('th-TH')) {
-                    qtyFullEl.innerText = displayQty.toLocaleString('th-TH');
-                }
-                if (qtyKEl) {
-                     // อัพเดทตัว K ถ้าเปลี่ยน
-                    const kVal = formatQuantityToK(displayQty);
-                    if(qtyKEl.innerText !== kVal) qtyKEl.innerText = kVal;
-                }
-
-                // --- 2. Update Price ---
-                const priceEl = card.querySelector('.product-price');
-                const newFormattedPrice = `฿${Number(product.price).toLocaleString('th-TH')}`;
-                if (priceEl && priceEl.innerText !== newFormattedPrice) {
-                    priceEl.innerText = newFormattedPrice;
-                    // เพิ่ม Effect สีเขียววาบเล็กน้อยถ้าต้องการให้รู้ว่าราคาเปลี่ยน (Optional)
-                    priceEl.style.color = '#2ecc71'; 
-                    setTimeout(() => priceEl.style.color = '', 1000);
-                }
-
-                // --- 3. Update Name ---
-                const nameEl = card.querySelector('.product-name');
-                if (nameEl && nameEl.innerText !== product.name) {
-                    nameEl.innerText = product.name;
-                }
-
-                // --- 4. Update Image ---
-                const imgEl = card.querySelector('.product-image');
-                const newImgUrl = getOptimizedImageUrl(product.imageUrl);
-                // เช็คว่า URL เปลี่ยนจริงไหม (decodeURIComponent เพื่อความชัวร์)
-                if (imgEl && imgEl.src !== newImgUrl && decodeURIComponent(imgEl.src) !== decodeURIComponent(newImgUrl)) {
-                    imgEl.src = newImgUrl;
-                }
-            }
-        });
-    }
+    // --- Standard Utils ---
 
     function parseTags(tagsString) {
         if (!tagsString) return [];
@@ -334,8 +344,6 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
 
     function renderCategoryChips() {
         if(!categoryFilterContainer) return;
-        
-        // เก็บหมวดหมู่ที่เลือกไว้ก่อนหน้า
         const previousSelection = currentFilter;
 
         categoryFilterContainer.innerHTML = '';
@@ -363,10 +371,8 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
 
     function selectCategory(btnElement) {
         if (isDraggingCategory) return;
-
         document.querySelectorAll('.category-chip').forEach(b => b.classList.remove('active'));
         btnElement.classList.add('active');
-
         currentFilter = btnElement.dataset.value;
         updateDisplay(); 
     }
@@ -390,19 +396,14 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
                 setupTagsPopup();
                 setupScrollToTopButton();
                 setupCategoryScrolling();
-                
                 window.addEventListener('resize', () => {});
-
                 searchInput.dataset.ready = "true";
             }
         }
         updateDisplay();
-        
-        // เริ่มระบบ Auto Update หลังจากโหลดครั้งแรกเสร็จ
         startAutoUpdate();
     }
 
-    // ฟังก์ชันแปลงข้อมูลดิบเป็นรูปแบบที่ใช้งาน
     function processRawData(items) {
         return items.map((d, index) => {
             return {
@@ -419,65 +420,44 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
         }).filter(p => p.type === 'ไอเทม');
     }
 
-    // เพิ่ม Parameter isBackgroundUpdate เพื่อแยกว่าเป็นการโหลดครั้งแรก หรือโหลดเพื่ออัพเดท
     async function loadData(isBackgroundUpdate = false) {
-        // --- ส่วนที่ 1: โหลดจาก LocalStorage (Cache) ---
         if (!isBackgroundUpdate) {
             const cachedData = localStorage.getItem(STORAGE_KEY);
             if (cachedData) {
                 try {
-                    const parsedData = JSON.parse(cachedData);
-                    // ถ้ามีข้อมูลใน Cache ให้แสดงผลทันที ไม่ต้องรอ fetch
-                    allProducts = processRawData(parsedData);
+                    allProducts = processRawData(JSON.parse(cachedData));
                     calculateActiveTags();
                     onInitialDataLoaded();
                 } catch (e) {
-                    console.warn("Failed to parse cached data", e);
                     renderSkeletonLoading();
                 }
             } else {
-                renderSkeletonLoading(); // ถ้าไม่มี Cache เลย ค่อยโชว์ Skeleton
+                renderSkeletonLoading();
             }
         }
 
-        // --- ส่วนที่ 2: ดึงข้อมูลสดจาก API ---
         try {
             const response = await fetch(API_URL);
             const data = await response.json();
             
             let items = [];
-            if (Array.isArray(data)) {
-                items = data;
-            } else if (data.data && Array.isArray(data.data)) {
-                items = data.data;
-            }
+            if (Array.isArray(data)) items = data;
+            else if (data.data && Array.isArray(data.data)) items = data.data;
 
-            // บันทึกข้อมูลสดลง LocalStorage ไว้ใช้ครั้งหน้า
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-            } catch (e) {
-                console.warn("Quota exceeded or error saving to localStorage", e);
-            }
+            } catch (e) {}
 
-            // แปลงข้อมูลใหม่
-            const newProducts = processRawData(items);
-
-            // เปรียบเทียบว่าข้อมูลเปลี่ยนไหม (แบบง่าย) หรือแค่อัพเดททับเลย
-            allProducts = newProducts;
+            allProducts = processRawData(items);
 
             if (!isBackgroundUpdate) {
-                // ถ้าเป็นการโหลดครั้งแรก ให้แสดงผลเลย
                 calculateActiveTags();
                 onInitialDataLoaded();
             } else {
-                // ถ้าเป็นการอัพเดทเบื้องหลัง ให้ใช้ Logic Smart Update
                 handleRealtimeUpdate();
             }
 
         } catch (error) {
-            console.error("Error loading products:", error);
-            // ถ้าโหลด API ไม่สำเร็จ แต่เรามีข้อมูลเก่าโชว์อยู่แล้ว ก็ไม่ต้องทำอะไร (User ยังเห็นข้อมูลเก่าได้)
-            // แต่ถ้าไม่มีข้อมูลเลย (allProducts ว่างเปล่า) ให้โชว์ Error
             if (!isBackgroundUpdate && allProducts.length === 0 && grid) {
                 grid.innerHTML = `<div id="message-container">โหลดข้อมูลไม่สำเร็จ: ${error.message}</div>`;
             }
@@ -563,7 +543,6 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
         });
     }
 
-    // Start App
     loadData();
 
 })();
