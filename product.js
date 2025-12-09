@@ -107,7 +107,7 @@ const STORAGE_KEY = 'site_product_cache_v1';
         filteredAndSortedProducts = result.sort((a, b) => Number(a.price) - Number(b.price));
     }
 
-    // --- NEW: Smart Rendering Function (หัวใจหลักที่แก้ภาพกระพริบ) ---
+    // --- NEW: Smart Rendering Function (หัวใจหลักที่แก้ภาพกระพริบ และแก้ Scroll เด้ง) ---
     function updateDisplay() {
         if (!searchInput) return;
 
@@ -153,24 +153,41 @@ const STORAGE_KEY = 'site_product_cache_v1';
             }
         });
 
-        // 2. วนลูปสินค้าที่จะแสดง และจัดการ DOM
-        displayProducts.forEach(product => {
+        // 2. วนลูปสินค้าที่จะแสดง และจัดการ DOM แบบระวังเรื่อง Scroll Jump
+        displayProducts.forEach((product, index) => {
             let card = existingCardMap.get(product.customId);
+            let isNew = false;
 
-            if (card) {
-                // A. มีการ์ดนี้อยู่แล้ว: ย้ายตำแหน่งไปท้ายสุด (ซึ่งจะเรียงลำดับใหม่ตาม Loop)
-                // การ appendChild element ที่มีอยู่แล้ว จะเป็นการ "ย้าย" ไม่ใช่สร้างใหม่ (รูปไม่กระพริบ)
-                grid.appendChild(card);
-                
-                // อัพเดทข้อมูลภายในการ์ด (เผื่อมีการเปลี่ยนแปลง Realtime)
-                updateCardContent(card, product);
-                
-                // ลบออกจาก Map เพื่อให้รู้ว่าตัวนี้ถูกใช้ไปแล้ว
-                existingCardMap.delete(product.customId);
-            } else {
-                // B. ยังไม่มีการ์ดนี้: สร้างใหม่
+            if (!card) {
+                // ถ้ายังไม่มีการ์ด ให้สร้างใหม่
                 card = createProductCard(product);
-                grid.appendChild(card);
+                isNew = true;
+            }
+
+            // --- FIX: เช็คตำแหน่งก่อนย้าย DOM เพื่อป้องกัน Scroll เด้ง ---
+            // ดูว่า ณ ตำแหน่ง index นี้ มี element อะไรวางอยู่
+            const currentElementAtIndex = grid.children[index];
+
+            // ถ้าการ์ดที่เราต้องการ (card) ไม่ได้วางอยู่ที่ตำแหน่งนี้ (currentElementAtIndex)
+            // เราถึงจะทำการย้าย หรือ แทรก
+            if (currentElementAtIndex !== card) {
+                if (currentElementAtIndex) {
+                    // ถ้ามี element อื่นขวางอยู่ ให้แทรก card ไปข้างหน้ามัน
+                    grid.insertBefore(card, currentElementAtIndex);
+                } else {
+                    // ถ้าไม่มี element ต่อท้ายแล้ว ให้วางต่อท้ายสุด
+                    grid.appendChild(card);
+                }
+            } 
+            // *ถ้า card วางถูกที่อยู่แล้ว (currentElementAtIndex === card) 
+            // เราจะไม่สั่ง appendChild หรือ insertBefore ซ้ำ เพื่อไม่ให้ Browser คำนวณ Layout ใหม่ (Scroll จะนิ่ง)
+
+            // อัพเดทข้อมูลภายในการ์ด (Text/Stock)
+            updateCardContent(card, product);
+            
+            // ลบออกจาก Map เพื่อให้รู้ว่าตัวนี้ถูกใช้ไปแล้ว
+            if (!isNew) {
+                existingCardMap.delete(product.customId);
             }
         });
 
@@ -185,7 +202,6 @@ const STORAGE_KEY = 'site_product_cache_v1';
         card.dataset.productId = product.customId;
         
         // Render เนื้อหาภายในครั้งแรก
-        // (โครงสร้างเหมือนเดิม แต่แยกฟังก์ชันออกมาเพื่อให้เรียกใช้ซ้ำได้)
         renderCardInnerHtml(card, product);
         
         return card;
@@ -212,13 +228,13 @@ const STORAGE_KEY = 'site_product_cache_v1';
         const outOfStockOverlay = isOutOfStock ? 
             `<div class="out-of-stock-overlay"><div class="out-of-stock-text">สินค้าหมด</div></div>` : '';
 
-        // เช็คว่าเคยมีรูปภาพอยู่แล้วไหม (เพื่อกันรูปกระพริบถ้าเราแค่จะอัพเดท text)
+        // เช็คว่าเคยมีรูปภาพอยู่แล้วไหม
         const existingImg = card.querySelector('.product-image');
         const imgUrl = getOptimizedImageUrl(product.imageUrl);
         let imgHtml = '';
         
         if (existingImg && existingImg.src === imgUrl) {
-            // ถ้ารูปเดิม URL เดิม ให้ใช้ HTML เดิม (แต่ต้องระวังเรื่อง skeleton)
+            // ถ้ารูปเดิม URL เดิม ให้ใช้ HTML เดิม
             imgHtml = card.querySelector('.product-image-container').innerHTML;
         } else {
             imgHtml = `
@@ -314,8 +330,6 @@ const STORAGE_KEY = 'site_product_cache_v1';
     }
 
     function handleRealtimeUpdate() {
-        // ใช้ updateDisplay ตัวใหม่ซึ่งจัดการ Diffing ให้แล้ว
-        // ดังนั้นเมื่อเรียก updateDisplay ระบบจะอัพเดทเฉพาะส่วนที่เปลี่ยนให้อัตโนมัติ
         updateDisplay();
     }
 
