@@ -113,6 +113,7 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
             return true;
         });
 
+        // เรียงลำดับตามราคา
         filteredAndSortedProducts = result.sort((a, b) => Number(a.price) - Number(b.price));
     }
 
@@ -205,7 +206,7 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
         });
     }
 
-    // --- Real-time Update Logic ---
+    // --- Real-time Update Logic (Smart Update) ---
 
     function startAutoUpdate() {
         if (updateInterval) clearInterval(updateInterval);
@@ -215,17 +216,45 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
         }, UPDATE_DELAY_MS);
     }
 
-    // ฟังก์ชันสำหรับอัพเดทเฉพาะตัวเลขบนหน้าจอ (ไม่รีเฟรชทั้ง Grid)
-    function updateVisibleStocks() {
-        allProducts.forEach(product => {
-            // หาการ์ดที่มี ID ตรงกันในหน้าจอ
+    // NEW: ฟังก์ชันตัดสินใจว่าจะอัพเดทแบบไหน (Soft Update หรือ Hard Update)
+    function handleRealtimeUpdate() {
+        if (!grid) return;
+
+        // 1. จำลองการ Filter และ Sort ด้วยข้อมูลใหม่ล่าสุด
+        filterAndSortProducts();
+
+        // 2. ดึง ID ของสินค้าที่แสดงอยู่บนหน้าจอตอนนี้
+        const currentCardIds = Array.from(grid.querySelectorAll('.product-card'))
+                                   .map(card => card.dataset.productId).join(',');
+        
+        // 3. ดึง ID ของสินค้าที่ควรจะแสดงตามข้อมูลใหม่
+        const newCardIds = filteredAndSortedProducts.map(p => p.customId).join(',');
+
+        // 4. เปรียบเทียบ
+        if (currentCardIds !== newCardIds) {
+            // กรณี A: ลำดับเปลี่ยน, มีสินค้าใหม่, หรือมีสินค้าหายไป -> ต้อง Re-render ใหม่ทั้งแผง (Hard Update)
+            console.log("Structure changed, performing hard update...");
+            // เก็บ Scroll Position ไว้ก่อนรีเฟรช
+            const scrollPos = window.scrollY; 
+            updateDisplay();
+            // พยายามคืนค่า Scroll (อาจจะไม่แม่นยำ 100% ถ้ารายการเปลี่ยนเยอะ แต่ดีกว่าเด้งไปบนสุด)
+            window.scrollTo({top: scrollPos, behavior: 'instant'}); 
+        } else {
+            // กรณี B: ลำดับเหมือนเดิม เป๊ะๆ -> อัพเดทแค่เนื้อหาภายใน (Soft Update)
+            console.log("Structure same, performing soft update...");
+            updateProductContentOnly(filteredAndSortedProducts);
+        }
+    }
+
+    // NEW: อัพเดทเฉพาะเนื้อหา (ราคา, รูป, ชื่อ, สต็อก) โดยไม่สร้าง Element ใหม่
+    function updateProductContentOnly(products) {
+        products.forEach(product => {
             const card = document.querySelector(`.product-card[data-product-id="${product.customId}"]`);
-            
             if (card) {
                 const newQty = Number(product.quantity);
                 const isOutOfStock = newQty <= 0;
                 
-                // 1. อัพเดทสถานะสินค้าหมด (Class & Overlay)
+                // --- 1. Update Stock & Overlay ---
                 const imgContainer = card.querySelector('.product-image-container');
                 const existingOverlay = card.querySelector('.out-of-stock-overlay');
 
@@ -242,22 +271,44 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
                     if (existingOverlay) existingOverlay.remove();
                 }
 
-                // 2. อัพเดทตัวเลขจำนวน
                 const qtyFullEl = card.querySelector('.quantity-full');
                 const qtyKEl = card.querySelector('.quantity-k');
                 const displayQty = isOutOfStock ? 0 : newQty;
 
-                if (qtyFullEl) qtyFullEl.innerText = displayQty.toLocaleString('th-TH');
-                if (qtyKEl) qtyKEl.innerText = formatQuantityToK(displayQty);
+                if (qtyFullEl && qtyFullEl.innerText !== displayQty.toLocaleString('th-TH')) {
+                    qtyFullEl.innerText = displayQty.toLocaleString('th-TH');
+                }
+                if (qtyKEl) {
+                     // อัพเดทตัว K ถ้าเปลี่ยน
+                    const kVal = formatQuantityToK(displayQty);
+                    if(qtyKEl.innerText !== kVal) qtyKEl.innerText = kVal;
+                }
+
+                // --- 2. Update Price ---
+                const priceEl = card.querySelector('.product-price');
+                const newFormattedPrice = `฿${Number(product.price).toLocaleString('th-TH')}`;
+                if (priceEl && priceEl.innerText !== newFormattedPrice) {
+                    priceEl.innerText = newFormattedPrice;
+                    // เพิ่ม Effect สีเขียววาบเล็กน้อยถ้าต้องการให้รู้ว่าราคาเปลี่ยน (Optional)
+                    priceEl.style.color = '#2ecc71'; 
+                    setTimeout(() => priceEl.style.color = '', 1000);
+                }
+
+                // --- 3. Update Name ---
+                const nameEl = card.querySelector('.product-name');
+                if (nameEl && nameEl.innerText !== product.name) {
+                    nameEl.innerText = product.name;
+                }
+
+                // --- 4. Update Image ---
+                const imgEl = card.querySelector('.product-image');
+                const newImgUrl = getOptimizedImageUrl(product.imageUrl);
+                // เช็คว่า URL เปลี่ยนจริงไหม (decodeURIComponent เพื่อความชัวร์)
+                if (imgEl && imgEl.src !== newImgUrl && decodeURIComponent(imgEl.src) !== decodeURIComponent(newImgUrl)) {
+                    imgEl.src = newImgUrl;
+                }
             }
         });
-        
-        // ถ้ามีการติ๊ก "ซ่อนสินค้าหมด" ไว้ ให้เรียก filter ใหม่เพื่อให้สินค้าที่เพิ่งหมดหายไป
-        if (hideOutOfStockCheckbox && hideOutOfStockCheckbox.checked) {
-            // เช็คว่ามีสินค้าที่เพิ่งหมดแล้วต้องซ่อนหรือไม่ ถ้ามีค่อยรีเฟรช Grid
-            // แต่เพื่อ UX ที่ดี การรีเฟรช Grid เงียบๆ อาจจะดีกว่า
-            // filterAndSortProducts(); // เรียกสิ่งนี้อาจทำให้ลำดับกระตุกถ้าไม่จำเป็น
-        }
     }
 
     function parseTags(tagsString) {
@@ -415,12 +466,12 @@ const STORAGE_KEY = 'site_product_cache_v1'; // Key สำหรับบัน�
             allProducts = newProducts;
 
             if (!isBackgroundUpdate) {
-                // ถ้าเป็นการโหลดครั้งแรก (และ API ตอบกลับมาแล้ว) ให้รีเฟรชหน้าจออีกรอบเพื่อให้มั่นใจว่าเป็นข้อมูลล่าสุด
+                // ถ้าเป็นการโหลดครั้งแรก ให้แสดงผลเลย
                 calculateActiveTags();
                 onInitialDataLoaded();
             } else {
-                // ถ้าเป็นการอัพเดทเบื้องหลัง ให้เรียกฟังก์ชันอัพเดทเฉพาะจุด
-                updateVisibleStocks();
+                // ถ้าเป็นการอัพเดทเบื้องหลัง ให้ใช้ Logic Smart Update
+                handleRealtimeUpdate();
             }
 
         } catch (error) {
